@@ -23,6 +23,8 @@
 # misc
 .DS_Store
 *.pem
+anchor/target/
+anchor/.anchor/
 
 # debug
 npm-debug.log*
