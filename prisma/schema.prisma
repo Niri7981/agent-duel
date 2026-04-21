@@ -1,28 +1,87 @@
 generator client {
-  provider = "prisma-client-js"
+  provider   = "prisma-client"
+  output     = "../src/generated/prisma"
+  engineType = "client"
 }
 
 datasource db {
   provider = "sqlite"
-  url      = env("DATABASE_URL")
 }
 
 model Round {
-  id               String   @id
+  id               String       @id @default(cuid())
   status           String
+  marketSymbol     String
   bankrollPerAgent Float
+  durationSeconds  Int
+  startsAt         DateTime?
+  endsAt           DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  event            RoundEvent?
+  agents           RoundAgent[]
+  actions          Action[]
+  settlement       Settlement?
+}
+
+model RoundEvent {
+  id               String   @id @default(cuid())
+  roundId          String   @unique
+  question         String
+  resolutionSource String
+  startPrice       Float
+  endPrice         Float?
+  outcome          String
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
-  actions          Action[]
+  round            Round    @relation(fields: [roundId], references: [id], onDelete: Cascade)
+}
+
+model RoundAgent {
+  id              String   @id @default(cuid())
+  roundId         String
+  agentKey        String
+  name            String
+  style           String
+  riskProfile     String
+  startingBalance Float
+  finalBalance    Float?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  round           Round    @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  actions         Action[]
+
+  @@index([roundId])
+  @@unique([roundId, agentKey])
 }
 
 model Action {
-  id        String   @id
-  roundId   String
-  agentId   String
-  side      String
-  sizeUsd   Float
-  reason    String
-  createdAt DateTime @default(now())
-  round     Round    @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  id           String     @id @default(cuid())
+  roundId      String
+  roundAgentId String
+  side         String
+  sizeUsd      Float
+  reason       String
+  createdAt    DateTime   @default(now())
+  round        Round      @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  roundAgent   RoundAgent @relation(fields: [roundAgentId], references: [id], onDelete: Cascade)
+
+  @@index([roundId])
+  @@index([roundAgentId])
+}
+
+model Settlement {
+  id               String   @id @default(cuid())
+  roundId          String   @unique
+  status           String
+  outcome          String
+  winnerAgentKey   String?
+  winnerName       String?
+  winningSide      String?
+  finalBalance     Float?
+  pnlUsd           Float?
+  settledAt        DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  round            Round    @relation(fields: [roundId], references: [id], onDelete: Cascade)
 }
