@@ -1,54 +1,41 @@
 import { prisma } from "@/lib/db/prisma";
-import { decideAction } from "@/lib/engine/decide-action";
+import { decideAction } from "@/lib/runtime/agents/decide-action";
+import { selectRoundAgents } from "@/lib/server/agents/select-round-agents";
+import { selectRoundEvent } from "@/lib/server/events/select-round-event";
 import type { ArenaEvent } from "@/lib/types/event";
 
-import { buildDemoMarket } from "./demo-market";
-
 export type CreateRoundInput = {
+  agentIds?: string[];
   bankrollPerAgent?: number;
   durationSeconds?: number;
-  marketSymbol?: string;
+  eventId?: string;
   startsAt?: Date;
 };
 
 const DEFAULT_BANKROLL_PER_AGENT = 10;
 
-// MVP 阶段先固定两名内置 agent，保证整条 duel loop 足够清晰。
-const BUILT_IN_AGENTS = [
-  {
-    agentKey: "momentum",
-    name: "Momentum Agent",
-    riskProfile: "medium",
-    style: "Trend following",
-  },
-  {
-    agentKey: "contrarian",
-    name: "Contrarian Agent",
-    riskProfile: "medium",
-    style: "Crowd fading",
-  },
-] as const;
-
 // 创建一场最小可运行的 duel：
-// 1. 生成事件
-// 2. 创建 round 主记录
-// 3. 挂上两名参赛 agent
-// 4. 让 agent 立即产出 action
+// 1. 从 Event Pool 里挑一条事件
+// 2. 从 Agent Pool 里挑两名公开选手
+// 3. 创建 round 主记录
+// 4. 让 agent runtime 立即产出 action
 // 5. 初始化一条 pending settlement
 export async function createRound(input: CreateRoundInput = {}) {
   const bankrollPerAgent =
     input.bankrollPerAgent ?? DEFAULT_BANKROLL_PER_AGENT;
 
-  // 这里先用确定性的 demo market 数据，后面可以平滑替换成真实价格源。
-  const market = buildDemoMarket({
+  const selectedEvent = await selectRoundEvent({
     durationSeconds: input.durationSeconds,
-    marketSymbol: input.marketSymbol,
+    eventId: input.eventId,
     startsAt: input.startsAt,
   });
+  const selectedAgents = selectRoundAgents({
+    agentIds: input.agentIds,
+  });
+  const market = selectedEvent.market;
   const roundEvent: Omit<ArenaEvent, "id"> = {
-    outcome: "pending",
-    question: market.question,
-    resolutionSource: market.resolutionSource,
+    ...selectedEvent.eventInput,
+    resolutionSource: selectedEvent.poolItem.resolutionSource,
   };
 
   return prisma.$transaction(async (tx) => {
@@ -79,11 +66,11 @@ export async function createRound(input: CreateRoundInput = {}) {
 
     const createdAgents: Array<{ agentKey: string; id: string }> = [];
 
-    for (const agent of BUILT_IN_AGENTS) {
-      // RoundAgent 记录的是“某个 agent 参加这一局”的身份，不是全局 agent 模板。
+    for (const agent of selectedAgents) {
+      // RoundAgent 记录的是“某个公开 agent 参加这一局”的快照，不是全局模板本身。
       const createdAgent = await tx.roundAgent.create({
         data: {
-          agentKey: agent.agentKey,
+          agentKey: agent.runtimeKey,
           name: agent.name,
           riskProfile: agent.riskProfile,
           roundId: round.id,

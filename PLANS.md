@@ -1,326 +1,556 @@
 # PLANS.md
 
-## Phase 1: Real Duel Lifecycle MVP
+## MVP Plan: Public Agent Identity Arena
 
 ### Problem
 
-The repo currently demonstrates the duel experience with hardcoded round data.
-That is useful for UI scaffolding, but it does not yet prove the core AgentDuel
-loop end to end:
+The current repo has the beginning of a round lifecycle, but the product thesis
+has now sharpened considerably.
 
-1. create a duel
-2. run two agents
-3. record their decisions
-4. move the duel through clear states
-5. settle the result
-6. render the winner from persisted state
+AgentDuel is not mainly a duel settlement demo.
+It is a product where agents earn public identity and reputation through
+repeated battles.
 
-Phase 1 should turn the project from a static demo into a real local MVP with a
-database-backed duel lifecycle. This phase fits directly into the core product
-loop between duel creation and visible winner reveal.
+Right now, the codebase still leans too much toward a "single duel flow" frame.
+That is useful, but it is not enough to prove the new core truth:
 
-### Goal
+**agents can publicly battle, and their performance can become durable public identity.**
 
-Build the minimum viable backend and app flow for one real duel at a time:
+The MVP therefore needs to expand from a single round demo into a compact arena
+system with:
 
-- create a binary short-horizon duel
-- assign exactly two agents
-- generate agent decisions automatically
-- store round state, actions, and settlement in Prisma
-- expose API routes to create, fetch, and settle a duel
-- render the duel page from persisted state instead of hardcoded demo objects
+- an internal Event Pool
+- an internal Agent Pool
+- round creation from those pools
+- visible agent decisions
+- round resolution
+- leaderboard movement
+- agent profile and match history
 
-This phase intentionally stops before wallet funding, real market data, and
-onchain escrow.
+### Core Truth To Prove
+
+The MVP succeeds if one resolved battle makes the winning agent feel more real.
+
+That means the resolved battle must visibly change:
+
+- ranking
+- streak
+- status
+- public record
+- profile history
+
+The emotional center is not "a trade happened."
+The emotional center is:
+
+**a battle ended, and an agent's public identity rose.**
+
+### Product Scope
+
+The MVP should include:
+
+- a small internal Event Pool
+- a small internal Agent Pool
+- round creation
+- visible agent decision outputs
+- clear round resolution
+- leaderboard
+- persistent match history
+- profile surface for each agent
+
+The MVP should not include:
+
+- broad market support
+- deep external market integrations as the headline
+- generalized autonomous trading infrastructure
+- large open ecosystems of user-created agents
+- too much tokenomics
+- too much marketplace complexity
 
 ### Constraints
 
-- Keep the MVP to a single duel format only.
-- Support only two built-in agents for now.
-- Prefer explicit state transitions over generic abstractions.
-- Optimize for demo clarity and visible autonomy, not system breadth.
-- Do not block on Solana integration in this phase.
-- Use fake or deterministic market inputs where needed, but persist all results.
-- Keep the data model small enough to evolve without migration pain.
+- Keep the playable experience to a small number of curated rounds.
+- Keep the initial Agent Pool small and intentionally designed.
+- Optimize for spectator clarity and public identity, not feature breadth.
+- Maintain the distinction between model provider and public arena agent.
+- Preserve room for onchain public record later, but do not block the MVP on
+  full onchain settlement.
+- Use deterministic or curated local data where needed to keep the MVP moving.
+- Prefer visible end-to-end proof over abstract infrastructure.
 
-### Out Of Scope
+### Product Architecture
 
-- wallet connect and USDC approvals
-- user-created custom agents
-- multi-market support
-- concurrent duel orchestration
-- live websocket streaming
-- onchain escrow and settlement
-- leaderboard and long-term profile pages
-- advanced oracle integrations
+The MVP should be built in these product layers:
 
-### Minimum User Flow
+1. event source layer
+2. event pool layer
+3. agent pool layer
+4. round / battle layer
+5. resolution / settlement layer
+6. leaderboard / profile / reputation layer
 
-1. User opens the app.
-2. User starts a duel.
-3. Backend creates a round with one event and two agents.
-4. Agent runtime generates one action per agent.
-5. Duel enters `live` state with visible countdown metadata.
-6. User can refresh or reopen the duel and see the same persisted state.
-7. Backend settles the duel.
-8. Duel enters `settled` state and the UI shows the winner and balances.
+Each implementation decision should clearly map back to one of these layers.
 
-### Phase 1 Architecture
+### Technical Architecture
 
-#### Frontend
+The MVP should be built in these technical layers:
 
-- Keep the current cinematic duel page structure.
-- Replace hardcoded round loading with fetches to real API routes.
-- Support the minimum round statuses needed for the page:
-  `pending`, `live`, `settling`, `settled`.
-- Show the event, both agent decisions, bankroll state, and settlement result
-  from persisted data.
+1. frontend presentation layer
+2. backend orchestration layer
+3. agent runtime layer
+4. chain record / settlement layer
+5. storage / indexing / stats layer
 
-#### Backend Orchestration
+### MVP User Flow
 
-- Add a service layer that owns duel lifecycle logic.
-- Responsibilities:
-  - create a round
-  - seed a single event
-  - assign the two built-in agents
-  - run both agent strategies
-  - write actions
-  - compute preview balances
-  - settle the round
+1. User opens the arena homepage.
+2. User sees the Event Pool, top agents, and live or recent rounds.
+3. User enters or starts a battle round built from the Event Pool and Agent Pool.
+4. Two public agents produce visible decisions.
+5. The round resolves.
+6. The winning agent moves on the leaderboard.
+7. The winner's profile, streak, and match history update.
+8. Users can inspect why that agent now deserves more trust or attention.
 
-This should remain synchronous and simple for Phase 1. We do not need jobs,
-queues, or background workers yet.
+### System Goals
 
-#### Agent Runtime
+The MVP needs to make five systems real:
 
-- Keep the current built-in strategies:
-  - momentum
-  - contrarian
-- Normalize their outputs into one persisted action shape.
-- Inputs can remain deterministic for now:
-  - question
-  - current price
-  - bankroll
-  - agent identity
+#### 1. Event Pool
 
-#### Data Layer
+The product should not expose a raw external market universe.
+It should expose a curated internal Event Pool.
 
-Use Prisma as the source of truth for the duel state. Phase 1 should persist:
+The Event Pool should include:
 
-- round metadata
-- event metadata
-- assigned agents
-- agent actions
-- balances or outcome snapshot
-- settlement result
+- clear title / question
+- source metadata
+- timing metadata
+- status
+- optional category
+- spectator-friendly structure
 
-#### Onchain Layer
+#### 2. Agent Pool
 
-No real chain writes in this phase.
+Agents should be public competitors, not hidden runtime names.
 
-We should preserve naming and lifecycle concepts that can later map cleanly onto
-Anchor instructions, but onchain state is not required to validate the MVP loop.
+Each agent record should include:
 
-### Proposed Data Model
+- id
+- name
+- avatar or visual token
+- style
+- risk profile
+- current rank
+- current streak
+- badge state
+- summary stats
+- runtime adapter or strategy key
 
-The current schema is too thin for the real duel lifecycle. Phase 1 should move
-toward explicit models like these:
+#### 3. Round / Battle
 
-- `Round`
-  - id
-  - status
-  - bankrollPerAgent
-  - startsAt
-  - endsAt
-  - createdAt
-  - updatedAt
-- `RoundEvent`
-  - id
-  - roundId
-  - question
-  - resolutionSource
-  - startPrice
-  - endPrice
-  - outcome
-- `RoundAgent`
-  - id
-  - roundId
-  - agentId
-  - name
-  - style
-  - riskProfile
-  - startingBalance
-  - finalBalance
-- `Action`
-  - id
-  - roundId
-  - roundAgentId
-  - side
-  - sizeUsd
-  - reason
-  - createdAt
-- `Settlement`
-  - id
-  - roundId
-  - winnerRoundAgentId
-  - pnlUsd
-  - status
-  - settledAt
+Each round should represent:
 
-Notes:
+- one curated event
+- two selected agents
+- visible decisions
+- timestamps
+- resolution state
+- winner outcome
 
-- It is fine if the first implementation folds some of this into fewer tables,
-  but the returned app state should still expose these concepts clearly.
-- `RoundAgent` is important because agent identity in a duel should be explicit
-  and queryable instead of being inferred from an action row.
+#### 4. Leaderboard / Reputation
+
+The leaderboard must be treated as a primary product surface, not an afterthought.
+
+It should make visible:
+
+- rank
+- movement
+- wins / losses
+- streaks
+- badges or prestige markers
+- credibility growth over time
+
+#### 5. Agent Profile / Match History
+
+Each public agent should have a profile surface showing:
+
+- identity
+- style
+- rank
+- streak
+- cumulative history
+- recent battles
+- credibility evidence
+
+### Current Codebase Implication
+
+The existing round lifecycle work is still useful, but it now belongs inside a
+broader arena architecture.
+
+Current code should evolve as follows:
+
+- existing round services become the battle layer foundation
+- current demo market logic should become part of the Event Pool pipeline
+- agent strategy functions should remain runtime logic, but the public Agent
+  Pool should become a separate identity layer
+- the homepage should become an arena / leaderboard / live rounds surface, not
+  a generic launch page
+
+### Proposed Data Model Direction
+
+The current schema already includes `Round`, `RoundEvent`, `RoundAgent`,
+`Action`, and `Settlement`, but the MVP now needs to expand toward explicit pool
+and reputation systems.
+
+Target models or equivalent structures:
+
+#### `EventPoolItem`
+
+- id
+- title / question
+- source
+- category
+- startTime
+- endTime
+- status
+- currentPrice or reference signal
+- resolutionSource
+- outcome
+
+#### `AgentProfile`
+
+- id
+- name
+- avatar
+- style
+- riskProfile
+- runtimeKey
+- badge
+- currentRank
+- totalWins
+- totalLosses
+- currentStreak
+- bestStreak
+- createdAt
+- updatedAt
+
+#### `Round`
+
+- id
+- status
+- eventPoolItemId
+- startsAt
+- endsAt
+- createdAt
+- updatedAt
+
+#### `RoundAgent`
+
+- id
+- roundId
+- agentProfileId
+- snapshotName
+- snapshotStyle
+- snapshotRank
+- startingBalance
+- finalBalance
+
+#### `Action`
+
+- id
+- roundId
+- roundAgentId
+- side
+- sizeUsd
+- reason
+- createdAt
+
+#### `Settlement`
+
+- id
+- roundId
+- outcome
+- winnerRoundAgentId
+- winnerAgentProfileId
+- pnlUsd
+- settledAt
+
+#### `LeaderboardSnapshot` or derived stats table
+
+This may remain derived in MVP if needed, but the product must expose:
+
+- current rank
+- previous rank
+- movement
+- streak
+- prestige markers
+
+#### `AgentMatchHistory`
+
+This can be derived from rounds in MVP, but the product must support profile
+pages that clearly show battle history.
 
 ### API Plan
 
-#### `POST /api/round`
+The current round APIs should stay, but the product now needs additional
+identity-focused endpoints or server loaders.
 
-Create one duel and return its persisted state.
+#### Existing Battle APIs
 
-Responsibilities:
+- `GET /api/round`
+  - returns the latest round state
+- `POST /api/round`
+  - creates a new round from the Event Pool and Agent Pool
+- `POST /api/settle`
+  - resolves a round and persists winner data
 
-- create event
-- create two round agents
-- run both strategies
-- persist actions
-- compute initial balances
-- set round status to `live`
+#### New Arena APIs Or Data Surfaces
 
-#### `GET /api/round`
+- `GET /api/events`
+  - returns the curated Event Pool
+- `GET /api/agents`
+  - returns the Agent Pool and leaderboard-facing summary
+- `GET /api/leaderboard`
+  - returns ranked agents with movement and streak data
+- `GET /api/agents/:id`
+  - returns one agent profile plus match history
 
-Return the latest duel state, or a specific round later if we add ids to the
-route shape.
+If route segments are not ideal right away, equivalent server-side data loaders
+are acceptable for the MVP.
 
-Responsibilities:
+### Frontend Plan
 
-- read the round and relations from Prisma
-- map database rows into the UI `RoundState`
+The frontend should shift from a simple duel shell into a compact arena product.
 
-#### `POST /api/settle`
+#### Required Surfaces
 
-Settle the current duel.
+1. Arena homepage
+   - top agents
+   - event pool
+   - current or latest battle
+   - leaderboard movement
 
-Responsibilities:
+2. Round page
+   - current battle
+   - agent decision outputs
+   - result
+   - visible winner state
 
-- determine outcome from deterministic demo data
-- compute winner and final balances
-- persist settlement
-- move round status to `settled`
+3. Leaderboard section
+   - rank
+   - movement
+   - streak
+   - badges
 
-#### `GET /api/timeline`
+4. Agent profile page
+   - identity
+   - history
+   - recent matches
+   - credibility surface
 
-Return persisted actions rather than generated demo actions.
+#### Motion Priorities
 
-### App State Shape
+Motion should prioritize:
 
-The app-facing `RoundState` type should evolve to reflect lifecycle reality:
+- battle resolution
+- leaderboard climb
+- streak activation
+- badge unlock
+- prestige reveal
 
-- round id
-- status
-- bankrollPerAgent
-- startsAt
-- endsAt
-- event
-- agents
-- actions
-- balances
-- settlement
+The product should feel like a live arena, not a trading terminal.
 
-This type should stay UI-friendly and not leak raw Prisma rows directly into the
-page.
+### Backend Orchestration Plan
+
+The backend should orchestrate:
+
+- selection of a curated event from the Event Pool
+- selection of participating agents from the Agent Pool
+- round creation
+- agent decision collection
+- round resolution
+- reputation and leaderboard updates
+
+Keep this orchestration explicit and readable.
+Avoid premature job systems or generic platform abstractions unless they
+materially help the MVP.
+
+### Agent Runtime Plan
+
+The runtime should preserve the distinction between public agent and backend
+brain.
+
+In MVP:
+
+- keep the existing strategy-backed agents
+- formalize them as public Agent Pool entries
+- maintain a standard decision interface
+
+Later:
+
+- add adapters for GPT / Claude / hybrid systems
+
+The arena should always execute against a standardized agent interface.
+
+### Onchain Plan
+
+For MVP:
+
+- keep real onchain settlement minimal
+- preserve the conceptual role of onchain public record
+- do not let full chain implementation block the arena, leaderboard, and
+  profile experience
+
+The immediate conceptual job of chain integration is:
+
+- make battle history durable
+- make performance harder to rewrite
+- prepare identity / reputation objects to become public truth
 
 ### Affected Files
 
 #### Existing files likely to change
 
+- `/Users/irin/agent-duel/AGENTS.md`
+- `/Users/irin/agent-duel/PLANS.md`
 - `/Users/irin/agent-duel/prisma/schema.prisma`
 - `/Users/irin/agent-duel/prisma/seed.ts`
 - `/Users/irin/agent-duel/src/app/page.tsx`
 - `/Users/irin/agent-duel/src/app/round/page.tsx`
 - `/Users/irin/agent-duel/src/app/api/round/route.ts`
-- `/Users/irin/agent-duel/src/app/api/timeline/route.ts`
 - `/Users/irin/agent-duel/src/app/api/settle/route.ts`
-- `/Users/irin/agent-duel/src/lib/db/prisma.ts`
-- `/Users/irin/agent-duel/src/lib/engine/run-round.ts`
-- `/Users/irin/agent-duel/src/lib/engine/decide-action.ts`
-- `/Users/irin/agent-duel/src/lib/engine/settle-round.ts`
-- `/Users/irin/agent-duel/src/lib/types/round.ts`
-- `/Users/irin/agent-duel/src/lib/types/action.ts`
-- `/Users/irin/agent-duel/src/lib/types/settlement.ts`
-- `/Users/irin/agent-duel/src/lib/types/event.ts`
+- `/Users/irin/agent-duel/src/app/api/timeline/route.ts`
+- `/Users/irin/agent-duel/src/lib/server/rounds/create-round.ts`
+- `/Users/irin/agent-duel/src/lib/server/rounds/get-latest-round.ts`
+- `/Users/irin/agent-duel/src/lib/server/rounds/map-round-state.ts`
+- `/Users/irin/agent-duel/src/lib/server/rounds/settle-round.ts`
+- `/Users/irin/agent-duel/src/lib/server/rounds/demo-market.ts`
 - `/Users/irin/agent-duel/src/lib/types/agent.ts`
+- `/Users/irin/agent-duel/src/lib/types/round.ts`
 
 #### New files likely needed
 
-- `/Users/irin/agent-duel/src/lib/server/create-round.ts`
-- `/Users/irin/agent-duel/src/lib/server/get-round.ts`
-- `/Users/irin/agent-duel/src/lib/server/settle-round.ts`
-- `/Users/irin/agent-duel/src/lib/server/round-mappers.ts`
-- `/Users/irin/agent-duel/src/lib/server/demo-market.ts`
+- `/Users/irin/agent-duel/src/lib/server/events/get-event-pool.ts`
+- `/Users/irin/agent-duel/src/lib/server/events/create-event-pool.ts`
+- `/Users/irin/agent-duel/src/lib/server/agents/get-agent-pool.ts`
+- `/Users/irin/agent-duel/src/lib/server/agents/get-agent-profile.ts`
+- `/Users/irin/agent-duel/src/lib/server/leaderboard/get-leaderboard.ts`
+- `/Users/irin/agent-duel/src/app/agents/[id]/page.tsx`
+- `/Users/irin/agent-duel/src/app/leaderboard/page.tsx`
+- `/Users/irin/agent-duel/src/app/api/events/route.ts`
+- `/Users/irin/agent-duel/src/app/api/agents/route.ts`
+- `/Users/irin/agent-duel/src/app/api/leaderboard/route.ts`
 
 ### Implementation Order
 
-1. Expand the Prisma schema for a real round lifecycle.
-2. Add server-side round creation logic.
-3. Move agent execution into the server creation flow.
-4. Add settlement persistence and round status transitions.
-5. Replace demo API responses with Prisma-backed responses.
-6. Update the duel page to fetch and render persisted round state.
-7. Add a simple start-duel trigger from the homepage or duel page.
-8. Verify the loop manually:
-   create duel -> view duel -> settle duel -> reload -> see winner.
+#### Phase 1: Reframe The Current MVP Around Identity
 
-### State Transition Plan
+1. Formalize the internal Agent Pool.
+2. Formalize the internal Event Pool.
+3. Update round creation to source from both pools.
+4. Make the homepage an arena / leaderboard entry point.
+5. Add a minimum leaderboard view.
+6. Add a minimum agent profile view.
 
-Use explicit statuses from day one:
+#### Phase 2: Make Battle Outcomes Change Public Status
 
-- `pending`
-  - round row exists but agent actions are not finalized yet
-- `live`
-  - actions exist and countdown is active
-- `settling`
-  - settlement has started but final result is not yet persisted
-- `settled`
-  - winner, balances, and outcome are final
+1. Update settlement to write leaderboard-affecting stats.
+2. Persist wins, losses, streaks, and rank movement.
+3. Surface recent match history on profiles.
+4. Add visual rank movement after settlement.
 
-This keeps UI messaging simple and leaves room for later async settlement.
+#### Phase 3: Make Public Record Credible
+
+1. Prepare chain-facing battle record structures.
+2. Persist durable public result snapshots.
+3. Connect onchain record updates to battle outcomes.
 
 ### Risks And Edge Cases
 
-- Prisma schema can drift from current UI types if we do not add a mapping layer.
-- If settlement logic is mixed directly into API routes, the code will get messy
-  quickly.
-- Hardcoding only one round retrieval strategy may make later history work
-  harder, so we should keep room for `roundId` lookup even if Phase 1 returns
-  the latest round.
-- The current demo balances are precomputed. Once we persist actions, balances
-  must be derived consistently from one formula.
-- If the page fetches live data but still assumes static render timing, the UX
-  can become confusing. We should make loading and empty states explicit.
-- SQLite is good enough for local MVP work, but we should not design APIs around
-  SQLite limitations.
+- The codebase may overfit to the current single-round flow and underbuild the
+  Event Pool / Agent Pool identity systems.
+- It is easy to keep building a duel screen while neglecting leaderboard and
+  profile surfaces, which are now product-critical.
+- If agent identity data is mixed directly into runtime-only structures, public
+  identity will stay too thin.
+- If the leaderboard is added as a late afterthought, the emotional payoff of
+  the product will remain weak.
+- If external event sources dominate the UX, the product will feel like a market
+  wrapper instead of an arena.
+- If onchain is treated only as payments, the strongest conceptual reason for
+  the product will be lost.
 
-### Definition Of Done
+### Definition Of Done For MVP
 
-Phase 1 is complete when:
+The MVP is complete when:
 
-- a duel can be created without editing code
-- the duel is saved in Prisma
-- two agents produce persisted actions automatically
-- the duel page renders from stored state
-- settlement can be triggered through the app API
-- the winner and balances persist after reload
-- no critical page section depends on `getDemoRoundState()`
+- the app exposes a small internal Event Pool
+- the app exposes a small internal Agent Pool
+- a battle can be created from those pools
+- agents produce visible decisions
+- a battle can resolve clearly
+- the winning agent visibly changes position or reputation state
+- leaderboard ranking is visible
+- each agent has a public profile surface
+- match history is inspectable
+- the product feels like an arena where agents become real through battle
 
-### Follow-Up After Phase 1
+### Immediate Next Step
 
-Once this is stable, the next phase should focus on:
+Do not keep optimizing the product around a bare duel flow alone.
 
-- wallet and budget authorization flow
-- real short-horizon market input
-- countdown tied to actual start and end timestamps
-- history and leaderboard
-- mapping the settled duel lifecycle onto Anchor state
+The next implementation push should focus on:
+
+1. internal Event Pool
+2. internal Agent Pool
+3. leaderboard surface
+4. agent profile surface
+
+Those systems are now the shortest path to proving the real product thesis.
+
+## Two-Day Execution Table
+
+The next two days should be treated as a focused MVP realignment sprint.
+The goal is not to broaden the system.
+The goal is to make the product visibly read as an arena where agents earn
+identity.
+
+| Day | Priority | What To Build | Why It Matters |
+| --- | --- | --- | --- |
+| Day 1 | 1 | Reorganize chain code into `onchain/` and keep it isolated from app code | Makes the repo easier to reason about and keeps chain work clearly separated |
+| Day 1 | 2 | Introduce a small internal Event Pool service and seed data | Moves the product away from "one hardcoded duel" and toward a real arena input layer |
+| Day 1 | 3 | Introduce a small internal Agent Pool service and seed data | Makes agents public competitors instead of hidden runtime-only strategies |
+| Day 1 | 4 | Refactor round creation to source from Event Pool + Agent Pool | Connects the new product truth to the existing battle backend |
+| Day 1 | 5 | Update homepage to show arena framing: live round, event pool preview, top agents preview | Starts shifting the product from duel launcher to public arena |
+| Day 2 | 1 | Build a minimum leaderboard service and leaderboard API/data surface | Leaderboard movement is the emotional center of the product |
+| Day 2 | 2 | Add leaderboard UI with rank, movement, streak, and top-agent presentation | Makes battle outcomes visibly change public status |
+| Day 2 | 3 | Build a minimum agent profile service with recent match history | Lets users inspect identity, reputation, and trust over time |
+| Day 2 | 4 | Add an agent profile page with summary stats and battle history | Makes agents feel like persistent public characters |
+| Day 2 | 5 | Connect settlement to reputation updates: wins, losses, streaks, rank recalculation | Turns battle results into public identity instead of isolated outcomes |
+
+### Day 1 Deliverable
+
+By the end of Day 1, the repo should clearly support:
+
+- an internal Event Pool
+- an internal Agent Pool
+- round creation from those pools
+- a homepage that feels more like an arena than a launcher
+
+### Day 2 Deliverable
+
+By the end of Day 2, the product should clearly support:
+
+- visible leaderboard movement
+- public agent profile surfaces
+- match history
+- battle outcomes that visibly change agent status
+
+### Rule For The Next Two Days
+
+Whenever there is a choice between:
+
+- making a battle look more like a generic market interaction
+- making an agent feel more real as a public competitor
+
+choose the second option.

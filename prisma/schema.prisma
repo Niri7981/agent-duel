@@ -24,6 +24,39 @@ model Round {
   settlement       Settlement?
 }
 
+model EventPoolItem {
+  id               String   @id @default(cuid())
+  sourceKey        String
+  externalEventId  String
+  externalMarketId String?
+  slug             String?
+  title            String
+  question         String
+  category         String
+  marketSymbol     String
+  yesLabel         String
+  noLabel          String
+  startsAt         DateTime?
+  endsAt           DateTime?
+  durationSeconds  Int
+  resolutionSource String
+  sourceLabel      String
+  externalUrl      String?
+  currentPrice     Float?
+  volumeUsd        Float?
+  liquidityScore   Float?
+  status           String
+  playable         Boolean  @default(true)
+  spectatorNote    String
+  stageLabel       String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([sourceKey, externalEventId])
+  @@index([status, playable])
+  @@index([marketSymbol])
+}
+
 model RoundEvent {
   id               String   @id @default(cuid())
   roundId          String   @unique

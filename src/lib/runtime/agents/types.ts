@@ -1,4 +1,4 @@
-import { ArenaEvent } from "@/lib/types/event";
+import type { ArenaEvent } from "@/lib/types/event";
 
 export type AgentDecisionInput = {
   event: ArenaEvent;

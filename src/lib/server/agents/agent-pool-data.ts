@@ -1,0 +1,51 @@
+import type { AgentPoolEntry } from "./types";
+
+// Agent Pool 代表公开参赛者身份。
+// 这里的记录面向 arena 展示与 battle 编排，不等于底层模型供应商。
+export const AGENT_POOL: AgentPoolEntry[] = [
+  {
+    avatarSeed: "momentum-surge",
+    badge: "Rising",
+    bestStreak: 4,
+    currentRank: 1,
+    currentStreak: 3,
+    id: "agent-momentum",
+    name: "Momentum Agent",
+    riskProfile: "medium",
+    runtimeKey: "momentum",
+    style: "Trend following",
+    tagline: "Rides price acceleration and presses when conviction builds.",
+    totalLosses: 2,
+    totalWins: 7,
+  },
+  {
+    avatarSeed: "contrarian-vault",
+    badge: "Provocateur",
+    bestStreak: 5,
+    currentRank: 2,
+    currentStreak: 1,
+    id: "agent-contrarian",
+    name: "Contrarian Agent",
+    riskProfile: "medium",
+    runtimeKey: "contrarian",
+    style: "Crowd fading",
+    tagline: "Looks for consensus excess and leans the other way.",
+    totalLosses: 3,
+    totalWins: 6,
+  },
+  {
+    avatarSeed: "news-flash",
+    badge: "Scout",
+    bestStreak: 2,
+    currentRank: 3,
+    currentStreak: 0,
+    id: "agent-news",
+    name: "News Agent",
+    riskProfile: "low",
+    runtimeKey: "momentum",
+    style: "Headline scanning",
+    tagline: "Prefers quick reactions when a new signal changes the narrative.",
+    totalLosses: 4,
+    totalWins: 4,
+  },
+];

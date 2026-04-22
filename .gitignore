@@ -23,8 +23,9 @@
 # misc
 .DS_Store
 *.pem
-anchor/target/
-anchor/.anchor/
+onchain/target/
+onchain/.anchor/
+/dev.db
 
 # debug
 npm-debug.log*

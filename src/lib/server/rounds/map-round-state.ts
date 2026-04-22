@@ -6,6 +6,7 @@ import type { RoundSettlement } from "@/lib/types/settlement";
 
 import type { PersistedRoundRecord } from "./get-latest-round";
 
+// 把某个 action 的创建时间，换算成“距离 round 开始已经过了多久”。
 function formatElapsedTime(createdAt: Date, startsAt: Date | null) {
   if (!startsAt) {
     return "00:00";
@@ -21,6 +22,7 @@ function formatElapsedTime(createdAt: Date, startsAt: Date | null) {
     .padStart(2, "0")}`;
 }
 
+// 从数据库 round 里，提取出页面要显示的 event。
 function mapEvent(round: PersistedRoundRecord): ArenaEvent {
   return {
     id: round.event?.id ?? `event-${round.id}`,

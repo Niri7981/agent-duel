@@ -1,4 +1,4 @@
-import { AgentDecision, AgentDecisionInput } from "@/lib/agents/types";
+import type { AgentDecision, AgentDecisionInput } from "@/lib/runtime/agents/types";
 
 export function runMomentumAgent(
   input: AgentDecisionInput,

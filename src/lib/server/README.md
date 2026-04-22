@@ -1,7 +1,9 @@
 # Server Layer
 
-This folder owns server-side duel orchestration.
+This folder owns server-side arena orchestration.
 
-- `rounds/` contains the round lifecycle services.
+- `events/` contains the internal Event Pool services.
+- `agents/` contains the internal Agent Pool services.
+- `rounds/` contains the round / battle lifecycle services.
 - `db/` continues to own the Prisma client.
-- `engine/` stays focused on pure decision and settlement logic.
+- `runtime/` stays focused on decision execution, not public identity.

@@ -13,4 +13,4 @@ cluster = "Localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-test = "ts-mocha -p ./tsconfig.json -t 1000000 anchor/tests/arena.ts"
+test = "ts-mocha -p ../tsconfig.json -t 1000000 tests/arena.ts"

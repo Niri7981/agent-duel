@@ -12,6 +12,44 @@ CREATE TABLE IF NOT EXISTS Round (
   updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS EventPoolItem (
+  id TEXT PRIMARY KEY NOT NULL,
+  sourceKey TEXT NOT NULL,
+  externalEventId TEXT NOT NULL,
+  externalMarketId TEXT,
+  slug TEXT,
+  title TEXT NOT NULL,
+  question TEXT NOT NULL,
+  category TEXT NOT NULL,
+  marketSymbol TEXT NOT NULL,
+  yesLabel TEXT NOT NULL,
+  noLabel TEXT NOT NULL,
+  startsAt DATETIME,
+  endsAt DATETIME,
+  durationSeconds INTEGER NOT NULL,
+  resolutionSource TEXT NOT NULL,
+  sourceLabel TEXT NOT NULL,
+  externalUrl TEXT,
+  currentPrice REAL,
+  volumeUsd REAL,
+  liquidityScore REAL,
+  status TEXT NOT NULL,
+  playable INTEGER NOT NULL DEFAULT 1,
+  spectatorNote TEXT NOT NULL,
+  stageLabel TEXT NOT NULL,
+  createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS EventPoolItem_sourceKey_externalEventId_key
+  ON EventPoolItem(sourceKey, externalEventId);
+
+CREATE INDEX IF NOT EXISTS EventPoolItem_status_playable_idx
+  ON EventPoolItem(status, playable);
+
+CREATE INDEX IF NOT EXISTS EventPoolItem_marketSymbol_idx
+  ON EventPoolItem(marketSymbol);
+
 CREATE TABLE IF NOT EXISTS RoundEvent (
   id TEXT PRIMARY KEY NOT NULL,
   roundId TEXT NOT NULL UNIQUE,
