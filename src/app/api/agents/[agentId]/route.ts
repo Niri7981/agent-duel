@@ -7,7 +7,7 @@ export async function GET(
   context: { params: Promise<{ agentId: string }> },
 ) {
   const { agentId } = await context.params;
-  const agent = getAgentPoolEntryById(agentId);
+  const agent = await getAgentPoolEntryById(agentId);
 
   if (!agent) {
     return NextResponse.json(

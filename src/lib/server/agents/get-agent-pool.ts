@@ -1,32 +1,86 @@
-import { AGENT_POOL } from "./agent-pool-data";
-import type { AgentPoolEntry, GetAgentPoolInput } from "./types";
+import { prisma } from "@/lib/db/prisma";
 
-export type { AgentPoolEntry, AgentPoolRiskProfile } from "./types";
+import type { GetAgentPoolInput, InternalAgentProfile } from "./types";
 
-export function getAgentPool(input: GetAgentPoolInput = {}) {
-  const filtered = AGENT_POOL.filter((agent) => {
-    if (input.runtimeKey && agent.runtimeKey !== input.runtimeKey) {
-      return false;
-    }
+export type { AgentPoolRiskProfile, InternalAgentProfile } from "./types";
 
-    return true;
-  }).sort((left, right) => left.currentRank - right.currentRank);
+type AgentProfileRecord = NonNullable<
+  Awaited<ReturnType<typeof prisma.agentProfile.findFirst>>
+>;
 
-  return typeof input.limit === "number"
-    ? filtered.slice(0, Math.max(0, input.limit))
-    : filtered;
+function mapRecordToAgentProfile(
+  record: AgentProfileRecord,
+): InternalAgentProfile {
+  return {
+    avatarSeed: record.avatarSeed,
+    badge: record.badge,
+    bestStreak: record.bestStreak,
+    currentRank: record.currentRank,
+    currentStreak: record.currentStreak,
+    id: record.id,
+    identityKey: record.identityKey,
+    isActive: record.isActive,
+    name: record.name,
+    riskProfile: record.riskProfile as InternalAgentProfile["riskProfile"],
+    runtimeKey: record.runtimeKey,
+    style: record.style,
+    tagline: record.tagline,
+    totalLosses: record.totalLosses,
+    totalWins: record.totalWins,
+  };
 }
 
-export function getTopAgentPool(limit = 3) {
+export async function getAgentPool(input: GetAgentPoolInput = {}) {
+  const records = await prisma.agentProfile.findMany({
+    orderBy: [{ currentRank: "asc" }, { totalWins: "desc" }, { name: "asc" }],
+    take: input.limit,
+    where: {
+      isActive: input.includeInactive ? undefined : true,
+      runtimeKey: input.runtimeKey,
+    },
+  });
+
+  return records.map((record) => mapRecordToAgentProfile(record));
+}
+
+export async function getTopAgentPool(limit = 3) {
   return getAgentPool({ limit });
 }
 
-export function getAgentPoolEntryById(agentId: string): AgentPoolEntry | null {
-  return AGENT_POOL.find((agent) => agent.id === agentId) ?? null;
+export async function getAgentPoolEntryById(
+  agentId: string,
+): Promise<InternalAgentProfile | null> {
+  const record = await prisma.agentProfile.findUnique({
+    where: {
+      id: agentId,
+    },
+  });
+
+  return record ? mapRecordToAgentProfile(record) : null;
 }
 
-export function getAgentPoolEntryByRuntimeKey(
+export async function getAgentPoolEntryByIdentityKey(
+  identityKey: string,
+): Promise<InternalAgentProfile | null> {
+  const record = await prisma.agentProfile.findUnique({
+    where: {
+      identityKey,
+    },
+  });
+
+  return record ? mapRecordToAgentProfile(record) : null;
+}
+
+export async function getAgentPoolEntryByRuntimeKey(
   runtimeKey: string,
-): AgentPoolEntry | null {
-  return AGENT_POOL.find((agent) => agent.runtimeKey === runtimeKey) ?? null;
+): Promise<InternalAgentProfile | null> {
+  const record = await prisma.agentProfile.findFirst({
+    orderBy: [{ currentRank: "asc" }, { totalWins: "desc" }],
+    where: {
+      isActive: true,
+      runtimeKey,
+    },
+  });
+
+  return record ? mapRecordToAgentProfile(record) : null;
 }

@@ -109,6 +109,12 @@ export default function HomePage() {
           >
             Open Event Pool
           </Link>
+          <Link
+            href="/agents"
+            className="rounded-full border border-neutral-700 px-5 py-3 text-sm font-medium text-neutral-100 transition hover:border-neutral-500"
+          >
+            Open Agent Pool
+          </Link>
           <a
             href="/api/round"
             className="rounded-full border border-neutral-700 px-5 py-3 text-sm font-medium text-neutral-100 transition hover:border-neutral-500"

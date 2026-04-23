@@ -1,22 +1,31 @@
 export type AgentPoolRiskProfile = "low" | "medium" | "high";
 
-export type AgentPoolEntry = {
+export type InternalAgentProfile = {
   id: string;
+  identityKey: string;
   runtimeKey: string;
   name: string;
+  avatarSeed: string;
   style: string;
   riskProfile: AgentPoolRiskProfile;
   badge: string;
   currentRank: number;
-  avatarSeed: string;
   tagline: string;
   totalWins: number;
   totalLosses: number;
   currentStreak: number;
   bestStreak: number;
+  isActive: boolean;
 };
 
 export type GetAgentPoolInput = {
+  includeInactive?: boolean;
   limit?: number;
   runtimeKey?: string;
+};
+
+export type SeedAgentPoolResult = {
+  inserted: number;
+  skipped: number;
+  updated: number;
 };

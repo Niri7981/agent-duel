@@ -13,9 +13,9 @@ type EventPoolRecord = NonNullable<
   Awaited<ReturnType<typeof prisma.eventPoolItem.findFirst>>
 >;
 
-const SUPPORTED_ARENA_SYMBOLS = new Set(["BTC", "ETH", "SOL"]);
-const MIN_EVENT_LEAD_MINUTES = 10;
-const MAX_EVENT_HORIZON_DAYS = 30;
+// 读取层和 normalize 层保持一致，避免 seed 进来的事件又被页面读层刷掉。
+const MIN_EVENT_LEAD_MINUTES = 5;
+const MAX_EVENT_HORIZON_DAYS = 120;
 
 function mapRecordToInternalEvent(record: EventPoolRecord): InternalEventPoolItem {
   return {
@@ -50,14 +50,6 @@ function mapRecordToInternalEvent(record: EventPoolRecord): InternalEventPoolIte
 // 这样 event-proof 页面展示的是“当前可用于开 round 的内部事件”，不是所有历史归一化记录。
 function isCurrentArenaPlayableEvent(record: EventPoolRecord) {
   if (!record.playable) {
-    return false;
-  }
-
-  if (!SUPPORTED_ARENA_SYMBOLS.has(record.marketSymbol)) {
-    return false;
-  }
-
-  if (record.category !== "crypto") {
     return false;
   }
 

@@ -5,9 +5,24 @@ import type {
 } from "./types";
 import type { PolymarketRawEventCandidate } from "./sources/polymarket";
 
-const SUPPORTED_ARENA_SYMBOLS = new Set(["BTC", "ETH", "SOL"]);
-const MIN_EVENT_LEAD_MINUTES = 10;
-const MAX_EVENT_HORIZON_DAYS = 30;
+// MVP 阶段先把时间窗口放宽一些，保证 internal event pool 里有足够多可用候选。
+// 后面如果要做 featured rounds，再在 round-selection 层单独收紧。
+const MIN_EVENT_LEAD_MINUTES = 5;
+const MAX_EVENT_HORIZON_DAYS = 120;
+
+export type EventNormalizationFailureReason =
+  | "missing_external_id"
+  | "missing_title_or_question"
+  | "inactive_or_closed"
+  | "invalid_question_shape"
+  | "missing_binary_labels"
+  | "missing_end_time"
+  | "ends_too_soon"
+  | "ends_too_far";
+
+type EventNormalizationResult =
+  | { ok: true; value: Omit<InternalEventPoolItem, "id"> }
+  | { ok: false; reason: EventNormalizationFailureReason };
 
 function readString(value: unknown) {
   return typeof value === "string" && value.trim().length > 0
@@ -78,6 +93,14 @@ function inferMarketSymbol(question: string) {
     return "SOL";
   }
 
+  if (upperQuestion.includes("USDC") || upperQuestion.includes("USD COIN")) {
+    return "USDC";
+  }
+
+  if (upperQuestion.includes("USDT") || upperQuestion.includes("TETHER")) {
+    return "USDT";
+  }
+
   return "GENERIC";
 }
 
@@ -143,7 +166,8 @@ function inferStatus(
   return activeFlag ? "ready" : "candidate";
 }
 
-function inferPlayable(params: {
+//过滤器
+function validatePlayableEvent(params: {
   activeFlag: boolean;
   closedFlag: boolean;
   endsAt: Date | null;
@@ -152,29 +176,29 @@ function inferPlayable(params: {
   question: string;
   yesLabel: string;
   noLabel: string;
-}) {
+}): EventNormalizationFailureReason | null {
   if (params.closedFlag || !params.activeFlag) {
-    return false;
+    return "inactive_or_closed";
   }
 
-  if (!params.question.endsWith("?")) {
-    return false;
+  const normalizedQuestion = params.question.trim();
+
+  if (normalizedQuestion.length < 12) {
+    return "invalid_question_shape";
   }
 
   if (!params.yesLabel || !params.noLabel) {
-    return false;
+    return "missing_binary_labels";
   }
 
-  if (!SUPPORTED_ARENA_SYMBOLS.has(params.marketSymbol)) {
-    return false;
-  }
-
-  if (params.category !== "crypto") {
-    return false;
+  // MVP 阶段不再强制要求必须识别出特定 symbol，也不再只允许 crypto。
+  // 只要问题文本足够清楚、结果是二元、时间窗口合适，就先允许进入 playable pool。
+  if (params.marketSymbol.trim().length === 0 || params.category.trim().length === 0) {
+    return "invalid_question_shape";
   }
 
   if (!params.endsAt) {
-    return false;
+    return "missing_end_time";
   }
 
   const now = Date.now();
@@ -183,14 +207,14 @@ function inferPlayable(params: {
   const endsAtMs = params.endsAt.getTime();
 
   if (endsAtMs <= now + minLeadMs) {
-    return false;
+    return "ends_too_soon";
   }
 
   if (endsAtMs > now + maxHorizonMs) {
-    return false;
+    return "ends_too_far";
   }
 
-  return true;
+  return null;
 }
 
 function inferSpectatorNote(category: EventPoolCategory) {
@@ -225,12 +249,10 @@ function inferStageLabel(category: EventPoolCategory) {
   return "Arena Stage";
 }
 
-// normalize-event.ts 的职责只有一个：
-// 把外部 source 的原始 candidate 转成 arena 自己的内部事件格式。
-// 如果这条原始记录连基础可玩性都不满足，就直接返回 null。
-export function normalizePolymarketEvent(
+// 详细归一化结果给 seed 层使用，这样页面能知道 invalid 到底因为什么被刷掉。
+export function normalizePolymarketEventWithReason(
   candidate: PolymarketRawEventCandidate,
-): Omit<InternalEventPoolItem, "id"> | null {
+): EventNormalizationResult {
   const event = candidate.event as Record<string, unknown>;
   const market = (candidate.market ?? {}) as Record<string, unknown>;
   const externalEventId =
@@ -239,7 +261,7 @@ export function normalizePolymarketEvent(
     readString(event.event_id);
 
   if (!externalEventId) {
-    return null;
+    return { ok: false, reason: "missing_external_id" };
   }
 
   const title =
@@ -252,7 +274,7 @@ export function normalizePolymarketEvent(
     title;
 
   if (!title || !question) {
-    return null;
+    return { ok: false, reason: "missing_title_or_question" };
   }
 
   const startsAt =
@@ -289,7 +311,7 @@ export function normalizePolymarketEvent(
     readNumber(market.liquidityNum) ??
     readNumber(market.liquidity) ??
     null;
-  const playable = inferPlayable({
+  const invalidReason = validatePlayableEvent({
     activeFlag,
     category,
     closedFlag,
@@ -300,36 +322,48 @@ export function normalizePolymarketEvent(
     yesLabel,
   });
 
-  if (!playable) {
-    return null;
+  if (invalidReason) {
+    return { ok: false, reason: invalidReason };
   }
 
   return {
-    category,
-    currentPrice,
-    durationSeconds: inferDurationSeconds(startsAt, endsAt),
-    endsAt,
-    externalEventId,
-    externalMarketId: readString(market.id),
-    externalUrl:
-      readString(event.url) ??
-      readString(market.url) ??
-      (slug ? `https://polymarket.com/event/${slug}` : null),
-    liquidityScore,
-    marketSymbol,
-    noLabel,
-    playable,
-    question,
-    resolutionSource: "Polymarket market resolution",
-    sourceKey: "polymarket",
-    sourceLabel: "Polymarket candidate feed",
-    spectatorNote: inferSpectatorNote(category),
-    stageLabel: inferStageLabel(category),
-    startsAt,
-    status: inferStatus(endsAt, activeFlag, closedFlag),
-    slug,
-    title,
-    volumeUsd,
-    yesLabel,
+    ok: true,
+    value: {
+      category,
+      currentPrice,
+      durationSeconds: inferDurationSeconds(startsAt, endsAt),
+      endsAt,
+      externalEventId,
+      externalMarketId: readString(market.id),
+      externalUrl:
+        readString(event.url) ??
+        readString(market.url) ??
+        (slug ? `https://polymarket.com/event/${slug}` : null),
+      liquidityScore,
+      marketSymbol,
+      noLabel,
+      playable: true,
+      question,
+      resolutionSource: "Polymarket market resolution",
+      sourceKey: "polymarket",
+      sourceLabel: "Polymarket candidate feed",
+      spectatorNote: inferSpectatorNote(category),
+      stageLabel: inferStageLabel(category),
+      startsAt,
+      status: inferStatus(endsAt, activeFlag, closedFlag),
+      slug,
+      title,
+      volumeUsd,
+      yesLabel,
+    },
   };
+}
+
+// battle 层和别的调用方如果只关心内部 normalized event，可以继续走这个简化入口。
+export function normalizePolymarketEvent(
+  candidate: PolymarketRawEventCandidate,
+): Omit<InternalEventPoolItem, "id"> | null {
+  const result = normalizePolymarketEventWithReason(candidate);
+
+  return result.ok ? result.value : null;
 }

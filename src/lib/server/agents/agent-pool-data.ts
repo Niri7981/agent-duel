@@ -1,15 +1,16 @@
-import type { AgentPoolEntry } from "./types";
+import type { InternalAgentProfile } from "./types";
 
 // Agent Pool 代表公开参赛者身份。
 // 这里的记录面向 arena 展示与 battle 编排，不等于底层模型供应商。
-export const AGENT_POOL: AgentPoolEntry[] = [
+export const AGENT_POOL: Array<Omit<InternalAgentProfile, "id">> = [
   {
     avatarSeed: "momentum-surge",
     badge: "Rising",
     bestStreak: 4,
     currentRank: 1,
     currentStreak: 3,
-    id: "agent-momentum",
+    identityKey: "agent-momentum",
+    isActive: true,
     name: "Momentum Agent",
     riskProfile: "medium",
     runtimeKey: "momentum",
@@ -24,7 +25,8 @@ export const AGENT_POOL: AgentPoolEntry[] = [
     bestStreak: 5,
     currentRank: 2,
     currentStreak: 1,
-    id: "agent-contrarian",
+    identityKey: "agent-contrarian",
+    isActive: true,
     name: "Contrarian Agent",
     riskProfile: "medium",
     runtimeKey: "contrarian",
@@ -39,7 +41,8 @@ export const AGENT_POOL: AgentPoolEntry[] = [
     bestStreak: 2,
     currentRank: 3,
     currentStreak: 0,
-    id: "agent-news",
+    identityKey: "agent-news",
+    isActive: true,
     name: "News Agent",
     riskProfile: "low",
     runtimeKey: "momentum",

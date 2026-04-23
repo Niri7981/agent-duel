@@ -50,6 +50,32 @@ CREATE INDEX IF NOT EXISTS EventPoolItem_status_playable_idx
 CREATE INDEX IF NOT EXISTS EventPoolItem_marketSymbol_idx
   ON EventPoolItem(marketSymbol);
 
+CREATE TABLE IF NOT EXISTS AgentProfile (
+  id TEXT PRIMARY KEY NOT NULL,
+  identityKey TEXT NOT NULL UNIQUE,
+  runtimeKey TEXT NOT NULL,
+  name TEXT NOT NULL,
+  avatarSeed TEXT NOT NULL,
+  style TEXT NOT NULL,
+  riskProfile TEXT NOT NULL,
+  badge TEXT NOT NULL,
+  currentRank INTEGER NOT NULL,
+  totalWins INTEGER NOT NULL DEFAULT 0,
+  totalLosses INTEGER NOT NULL DEFAULT 0,
+  currentStreak INTEGER NOT NULL DEFAULT 0,
+  bestStreak INTEGER NOT NULL DEFAULT 0,
+  tagline TEXT NOT NULL,
+  isActive INTEGER NOT NULL DEFAULT 1,
+  createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS AgentProfile_isActive_currentRank_idx
+  ON AgentProfile(isActive, currentRank);
+
+CREATE INDEX IF NOT EXISTS AgentProfile_runtimeKey_idx
+  ON AgentProfile(runtimeKey);
+
 CREATE TABLE IF NOT EXISTS RoundEvent (
   id TEXT PRIMARY KEY NOT NULL,
   roundId TEXT NOT NULL UNIQUE,

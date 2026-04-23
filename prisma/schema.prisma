@@ -57,6 +57,29 @@ model EventPoolItem {
   @@index([marketSymbol])
 }
 
+model AgentProfile {
+  id            String   @id @default(cuid())
+  identityKey   String   @unique
+  runtimeKey    String
+  name          String
+  avatarSeed    String
+  style         String
+  riskProfile   String
+  badge         String
+  currentRank   Int
+  totalWins     Int      @default(0)
+  totalLosses   Int      @default(0)
+  currentStreak Int      @default(0)
+  bestStreak    Int      @default(0)
+  tagline       String
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([isActive, currentRank])
+  @@index([runtimeKey])
+}
+
 model RoundEvent {
   id               String   @id @default(cuid())
   roundId          String   @unique

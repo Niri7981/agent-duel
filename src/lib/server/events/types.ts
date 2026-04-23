@@ -1,11 +1,13 @@
+//外部来源 key
 export type ExternalEventSourceKey = "polymarket";
 
+//状态机定义
 export type EventPoolStatus =
-  | "candidate"
-  | "ready"
-  | "live"
-  | "settled"
-  | "archived";
+  | "candidate" //候选
+  | "ready" //准备好
+  | "live" //正在使用
+  | "settled" //已结算
+  | "archived"; //已归档
 
 export type EventPoolCategory =
   | "crypto"
@@ -54,6 +56,7 @@ export type GetEventPoolInput = {
 export type SeedEventPoolResult = {
   inserted: number;
   invalid: number;
+  invalidBreakdown: Record<string, number>;
   skipped: number;
   updated: number;
 };

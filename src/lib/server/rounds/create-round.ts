@@ -29,7 +29,7 @@ export async function createRound(input: CreateRoundInput = {}) {
     eventId: input.eventId,
     startsAt: input.startsAt,
   });
-  const selectedAgents = selectRoundAgents({
+  const selectedAgents = await selectRoundAgents({
     agentIds: input.agentIds,
   });
   const market = selectedEvent.market;
