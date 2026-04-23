@@ -1,5 +1,101 @@
 # PLANS.md
 
+## Immediate Plan: Leaderboard MVP Closure
+
+### Goal
+
+Close the smallest possible identity loop after `event-proof` and
+`agent-proof`.
+
+The next implementation step is not a larger UI push.
+It is making round settlement update public agent status for real.
+
+That means:
+
+- settlement updates wins and losses
+- settlement updates streak state
+- settlement recalculates rank
+- the leaderboard becomes a first-class backend surface
+
+### Minimum Viable Implementation
+
+Build the leaderboard layer before wiring it into `settle-round`.
+
+This layer should provide:
+
+- a single rank rule for active public agents
+- a rank recomputation function that can be called after settlement
+- a leaderboard read service that returns leaderboard-facing agent data
+- a `GET /api/leaderboard` route for UI consumption
+
+For the MVP, rank can remain derived from current profile stats instead of
+introducing a more complex rating system.
+
+### Product Layer Impact
+
+This work primarily advances:
+
+1. leaderboard / profile / reputation layer
+2. resolution / settlement layer
+3. agent pool layer
+
+It is the shortest path from "a duel resolved" to "an agent's identity changed
+publicly."
+
+### Technical Layer Impact
+
+This work primarily touches:
+
+1. backend orchestration layer
+2. storage / indexing / stats layer
+3. frontend presentation layer through a new API surface
+
+### Rank Rule For MVP
+
+Keep the first ranking rule simple and legible.
+
+Sort active agents by:
+
+1. total wins descending
+2. current streak descending
+3. best streak descending
+4. total losses ascending
+5. createdAt ascending
+6. name ascending
+
+Then rewrite `currentRank` from the sorted order.
+
+This is intentionally simpler than Elo.
+The product needs visible public status change first.
+
+### Affected Files
+
+- `/Users/irin/agent-duel/PLANS.md`
+- `/Users/irin/agent-duel/src/lib/server/rounds/settle-round.ts`
+- `/Users/irin/agent-duel/src/app/api/leaderboard/route.ts`
+
+### New Files
+
+- `/Users/irin/agent-duel/src/lib/server/leaderboard/get-leaderboard.ts`
+- `/Users/irin/agent-duel/src/lib/server/leaderboard/recompute-ranks.ts`
+- `/Users/irin/agent-duel/src/lib/server/leaderboard/types.ts`
+
+### Implementation Order
+
+1. Write the leaderboard service layer.
+2. Expose the leaderboard API.
+3. Wire rank recomputation into `settle-round`.
+4. Surface rank and streak change in the round and leaderboard UI.
+
+### Risks
+
+- If rank logic is embedded directly in `settle-round`, leaderboard behavior
+  will become harder to evolve.
+- If the API surface is skipped, the frontend will keep reading ad hoc agent
+  shapes instead of a leaderboard shape.
+- If movement is prioritized before real rank write-back exists, the UI will
+  overpromise identity change.
+
 ## MVP Plan: Public Agent Identity Arena
 
 ### Problem

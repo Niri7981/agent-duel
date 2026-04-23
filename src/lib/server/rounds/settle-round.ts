@@ -1,5 +1,6 @@
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
+import { recomputeLeaderboardRanks } from "@/lib/server/leaderboard/recompute-ranks";
 
 import type { PersistedRoundRecord } from "./get-latest-round";
 import { resolveDemoMarket } from "./demo-market";
@@ -36,6 +37,86 @@ function buildInitialBalances(round: PersistedRoundRecord) {
   return new Map(
     round.agents.map((agent) => [agent.agentKey, agent.startingBalance]),
   );
+}
+
+async function findAgentProfilesForRound(
+  tx: Prisma.TransactionClient,
+  round: PersistedRoundRecord,
+) {
+  const agentKeys = [...new Set(round.agents.map((agent) => agent.agentKey))];
+
+  const profiles = await tx.agentProfile.findMany({
+    where: {
+      OR: [{ identityKey: { in: agentKeys } }, { runtimeKey: { in: agentKeys } }],
+    },
+  });
+
+  return round.agents.map((agent) => {
+    const exactIdentityMatch = profiles.find(
+      (profile) => profile.identityKey === agent.agentKey,
+    );
+
+    if (exactIdentityMatch) {
+      return {
+        agent,
+        profile: exactIdentityMatch,
+      };
+    }
+
+    const runtimeMatches = profiles.filter(
+      (profile) => profile.runtimeKey === agent.agentKey,
+    );
+
+    if (runtimeMatches.length === 1) {
+      return {
+        agent,
+        profile: runtimeMatches[0],
+      };
+    }
+
+    if (runtimeMatches.length > 1) {
+      throw new Error(
+        `Round agent ${agent.agentKey} matches multiple agent profiles by runtimeKey.`,
+      );
+    }
+
+    throw new Error(`No agent profile found for round agent ${agent.agentKey}.`);
+  });
+}
+
+async function applyAgentReputationUpdate(
+  tx: Prisma.TransactionClient,
+  round: PersistedRoundRecord,
+  winnerAgentKey: string | null,
+) {
+  const profileMappings = await findAgentProfilesForRound(tx, round);
+
+  for (const { agent, profile } of profileMappings) {
+    const isWinner = winnerAgentKey !== null && agent.agentKey === winnerAgentKey;
+    const isDraw = winnerAgentKey === null;
+    const nextWins = profile.totalWins + (isWinner ? 1 : 0);
+    const nextLosses = profile.totalLosses + (!isWinner && !isDraw ? 1 : 0);
+    const nextStreak = isWinner
+      ? profile.currentStreak + 1
+      : isDraw
+        ? profile.currentStreak
+        : 0;
+    const nextBestStreak = Math.max(profile.bestStreak, nextStreak);
+
+    await tx.agentProfile.update({
+      data: {
+        bestStreak: nextBestStreak,
+        currentStreak: nextStreak,
+        totalLosses: nextLosses,
+        totalWins: nextWins,
+      },
+      where: {
+        id: profile.id,
+      },
+    });
+  }
+
+  await recomputeLeaderboardRanks(tx);
 }
 
 // MVP 先按“单场 duel、两个 agent、单次 action”来结算：
@@ -180,6 +261,12 @@ export async function settleRound(
         },
       });
     }
+
+    await applyAgentReputationUpdate(
+      tx,
+      targetRound,
+      settlement.winnerAgentKey,
+    );
 
     return tx.round.findUniqueOrThrow({
       include: roundInclude,

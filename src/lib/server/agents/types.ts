@@ -1,5 +1,6 @@
 export type AgentPoolRiskProfile = "low" | "medium" | "high";
 
+//内部的agent标准
 export type InternalAgentProfile = {
   id: string;
   identityKey: string;

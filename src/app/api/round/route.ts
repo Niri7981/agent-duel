@@ -26,7 +26,7 @@ export async function GET() {
   }
 
   // GET 只负责把最新一场 duel 读出来并映射成前端状态。
-  return NextResponse.json(mapRoundToState(round));
+  return NextResponse.json(await mapRoundToState(round));
 }
 
 export async function POST(request: Request) {
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
       startsAt: payload.startsAt ? new Date(payload.startsAt) : undefined,
     });
 
-    return NextResponse.json(mapRoundToState(round), { status: 201 });
+    return NextResponse.json(await mapRoundToState(round), { status: 201 });
   } catch (error) {
     console.error("Failed to create round", error);
 

@@ -2,6 +2,7 @@ import type { InternalAgentProfile } from "./types";
 
 // Agent Pool 代表公开参赛者身份。
 // 这里的记录面向 arena 展示与 battle 编排，不等于底层模型供应商。
+//AgentDuel 初始承认的公开参赛者身份种子。
 export const AGENT_POOL: Array<Omit<InternalAgentProfile, "id">> = [
   {
     avatarSeed: "momentum-surge",

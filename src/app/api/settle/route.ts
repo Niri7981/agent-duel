@@ -8,7 +8,7 @@ export async function POST() {
     // 这里先结算最新一场 duel；后面如果页面传 roundId，再把它接进来。
     const round = await settleRound();
 
-    return NextResponse.json(mapRoundToState(round));
+    return NextResponse.json(await mapRoundToState(round));
   } catch (error) {
     console.error("Failed to settle round", error);
 

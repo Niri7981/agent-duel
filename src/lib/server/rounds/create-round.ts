@@ -64,13 +64,17 @@ export async function createRound(input: CreateRoundInput = {}) {
       },
     });
 
-    const createdAgents: Array<{ agentKey: string; id: string }> = [];
+    const createdAgents: Array<{
+      agentKey: string;
+      id: string;
+      runtimeKey: string;
+    }> = [];
 
     for (const agent of selectedAgents) {
       // RoundAgent 记录的是“某个公开 agent 参加这一局”的快照，不是全局模板本身。
       const createdAgent = await tx.roundAgent.create({
         data: {
-          agentKey: agent.runtimeKey,
+          agentKey: agent.identityKey,
           name: agent.name,
           riskProfile: agent.riskProfile,
           roundId: round.id,
@@ -82,6 +86,7 @@ export async function createRound(input: CreateRoundInput = {}) {
       createdAgents.push({
         agentKey: createdAgent.agentKey,
         id: createdAgent.id,
+        runtimeKey: agent.runtimeKey,
       });
     }
 
@@ -93,7 +98,7 @@ export async function createRound(input: CreateRoundInput = {}) {
     for (const agent of createdAgents) {
       // agent runtime 只负责给出决策，真正的落库由服务层完成。
       const decision = decideAction({
-        agentId: agent.agentKey,
+        agentId: agent.runtimeKey,
         bankrollUsd: bankrollPerAgent,
         currentPrice: market.currentPrice,
         event: eventInput,
