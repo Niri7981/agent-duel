@@ -11,6 +11,14 @@ type AgentProfileRecord = NonNullable<
   Awaited<ReturnType<typeof prisma.agentProfile.findFirst>>
 >;
 
+// 这里在干嘛：
+// 把数据库里的 AgentProfile 记录，翻译成 leaderboard 页面和 API 真正消费的 LeaderboardEntry。
+// 为什么这么写：
+// 榜单需要的字段和通用 agent profile 不完全一样。
+// 这里顺手把 matchesPlayed、winRate 这种展示层强相关的派生值也一起算出来，
+// 避免页面自己重复计算。
+// 最后返回什么：
+// 返回一条 LeaderboardEntry。
 function mapRecordToLeaderboardEntry(
   record: AgentProfileRecord,
 ): LeaderboardEntry {
@@ -37,6 +45,14 @@ function mapRecordToLeaderboardEntry(
   };
 }
 
+// 这里在干嘛：
+// 读取当前 leaderboard 的公开榜单数据。
+// 为什么这么写：
+// leaderboard 是一个独立产品面，不应该直接暴露裸 AgentProfile 记录。
+// 这里统一处理 active 过滤、limit 截断、排序和 shape 映射，
+// 让 API 和页面都通过同一个服务入口拿榜单。
+// 最后返回什么：
+// 返回一个按当前 rank 顺序排好的 LeaderboardEntry 数组。
 export async function getLeaderboard(input: GetLeaderboardInput = {}) {
   const records = await prisma.agentProfile.findMany({
     orderBy: [
@@ -53,4 +69,3 @@ export async function getLeaderboard(input: GetLeaderboardInput = {}) {
 
   return records.map((record) => mapRecordToLeaderboardEntry(record));
 }
-

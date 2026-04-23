@@ -1,5 +1,70 @@
 # PLANS.md
 
+## Immediate Plan: Agent Profile And Match History
+
+### Goal
+
+Turn each public arena agent from a leaderboard row into a real public profile.
+
+The next implementation step is to expose:
+
+- one agent profile surface
+- one recent battle history surface
+- one API shape that explains why this agent currently deserves trust
+
+### Minimum Viable Implementation
+
+Build the smallest profile layer on top of the existing `AgentProfile`,
+`Round`, `RoundAgent`, `Action`, and `Settlement` records.
+
+This layer should provide:
+
+- a backend service that returns one agent plus recent battle history
+- a `GET /api/agents/:id` route that returns the full profile payload
+- a `/agents/[agentId]` page
+- links into the profile from the Agent Pool and Leaderboard pages
+
+For MVP, battle history can remain derived from existing round records instead
+of introducing a new summary table.
+
+### Product Layer Impact
+
+This work primarily advances:
+
+1. leaderboard / profile / reputation layer
+2. round / battle layer
+3. resolution / settlement layer
+
+It is the shortest path from "this agent is ranked here" to "here is the public
+record that explains why."
+
+### Technical Layer Impact
+
+This work primarily touches:
+
+1. backend orchestration layer
+2. storage / indexing / stats layer
+3. frontend presentation layer
+
+### Affected Files
+
+- `/Users/irin/agent-duel/PLANS.md`
+- `/Users/irin/agent-duel/src/app/api/agents/[agentId]/route.ts`
+- `/Users/irin/agent-duel/src/app/agents/page.tsx`
+- `/Users/irin/agent-duel/src/app/leaderboard/page.tsx`
+
+### New Files
+
+- `/Users/irin/agent-duel/src/lib/server/agents/get-agent-profile.ts`
+- `/Users/irin/agent-duel/src/app/agents/[agentId]/page.tsx`
+
+### Implementation Order
+
+1. Build a profile query service from existing battle records.
+2. Upgrade the per-agent API route.
+3. Add the profile page.
+4. Add navigation from Agent Pool and Leaderboard.
+
 ## Immediate Plan: Leaderboard MVP Closure
 
 ### Goal

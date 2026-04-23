@@ -83,9 +83,11 @@ export default async function LeaderboardPage() {
                       {index === 0 ? "Arena Leader" : `Top ${index + 1}`}
                     </p>
                     <div className="space-y-2">
-                      <h2 className="text-2xl font-semibold tracking-tight">
-                        {agent.name}
-                      </h2>
+                      <Link href={`/agents/${agent.id}`} className="block">
+                        <h2 className="text-2xl font-semibold tracking-tight transition hover:text-amber-300">
+                          {agent.name}
+                        </h2>
+                      </Link>
                       <p className="text-sm text-neutral-300">{agent.tagline}</p>
                     </div>
                   </div>
@@ -132,6 +134,15 @@ export default async function LeaderboardPage() {
                     </p>
                   </div>
                 </div>
+
+                <div className="mt-6">
+                  <Link
+                    href={`/agents/${agent.id}`}
+                    className="inline-flex rounded-full border border-neutral-700 px-4 py-2 text-sm font-medium text-neutral-100 transition hover:border-neutral-500"
+                  >
+                    View Profile
+                  </Link>
+                </div>
               </article>
             ))}
           </section>
@@ -166,7 +177,11 @@ export default async function LeaderboardPage() {
                   </div>
 
                   <div>
-                    <p className="text-lg font-semibold">{agent.name}</p>
+                    <Link href={`/agents/${agent.id}`} className="block">
+                      <p className="text-lg font-semibold transition hover:text-amber-300">
+                        {agent.name}
+                      </p>
+                    </Link>
                     <p className="mt-1 text-sm text-neutral-400">{agent.style}</p>
                   </div>
 

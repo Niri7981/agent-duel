@@ -33,12 +33,28 @@ const roundInclude = {
   settlement: true,
 } satisfies Prisma.RoundInclude;
 
+// 这里在干嘛：
+// 为一场 round 初始化“每个参赛 agent 当前余额”的映射表。
+// 为什么这么写：
+// 结算时需要先拿到每个 agent 的起始资金，再根据输赢去更新最终余额。
+// 用 Map 可以让后面按 agentKey 回写 finalBalance 时更直接。
+// 最后返回什么：
+// 返回一个 Map，key 是 round 里的 agentKey，value 是起始余额。
 function buildInitialBalances(round: PersistedRoundRecord) {
   return new Map(
     round.agents.map((agent) => [agent.agentKey, agent.startingBalance]),
   );
 }
 
+// 这里在干嘛：
+// 把 round 里的参赛者，映射回全局 AgentProfile。
+// 为什么这么写：
+// settlement 只能告诉我们 round 里谁赢了，
+// 但 reputation 更新要改的是全局 AgentProfile，所以这里要先把两边对应起来。
+// 同时这里兼容了旧数据：
+// 优先按 identityKey 精确匹配；找不到时再退回 runtimeKey。
+// 最后返回什么：
+// 返回一个数组，里面每项都包含 round 内参赛快照和对应的全局 profile。
 async function findAgentProfilesForRound(
   tx: Prisma.TransactionClient,
   round: PersistedRoundRecord,
@@ -84,6 +100,15 @@ async function findAgentProfilesForRound(
   });
 }
 
+// 这里在干嘛：
+// 根据这场 battle 的赢家，把全局 agent reputation 回写到 AgentProfile。
+// 为什么这么写：
+// AgentDuel 的核心不是“round 结了”，而是“结算结果改变了公开身份”。
+// 所以 winner / loser 的 wins、losses、streak 必须在这里一起更新，
+// 然后立刻触发一次 leaderboard 重排。
+// draw 的情况单独处理，避免错误地给双方都记 loss。
+// 最后返回什么：
+// 这个函数本身不返回业务数据；它的作用是完成数据库里的 reputation 写回。
 async function applyAgentReputationUpdate(
   tx: Prisma.TransactionClient,
   round: PersistedRoundRecord,
@@ -119,11 +144,16 @@ async function applyAgentReputationUpdate(
   await recomputeLeaderboardRanks(tx);
 }
 
-// MVP 先按“单场 duel、两个 agent、单次 action”来结算：
-// 1. 根据 event outcome 找出押对的一方
-// 2. 用双方下注额的最小值作为可撮合仓位
-// 3. 赢的一方加 matched stake，输的一方减 matched stake
-// 这样规则足够简单，也能保持资金变化可解释。
+// 这里在干嘛：
+// 用当前 MVP 规则计算这场 duel 的结算结果。
+// 为什么这么写：
+// 现在先把规则压到最小闭环：
+// 1. 找出押对 outcome 的一方
+// 2. 用双方下注额的最小值作为 matched stake
+// 3. winner 加 matched stake，loser 减 matched stake
+// 这样资金变化足够直观，也方便把 battle outcome 连接到 reputation 更新。
+// 最后返回什么：
+// 返回一份 SettlementComputation，里面包含最终余额、赢家信息和 pnl。
 function computeSettlement(
   round: PersistedRoundRecord,
   outcome: "yes" | "no",
@@ -162,6 +192,15 @@ function computeSettlement(
   };
 }
 
+// 这里在干嘛：
+// 结算一场指定或最新的 round，并把结果一路写回 round、event、roundAgent、settlement、agent reputation。
+// 为什么这么写：
+// 这是当前 battle lifecycle 的核心写入口。
+// 一场 round 的真实闭环不是只更新 settlement，
+// 而是要在同一个 transaction 里把 battle 结果变成公开身份变化。
+// 所以这里把资金结算和 reputation write-back 串在一起。
+// 最后返回什么：
+// 返回这场 round 结算完成后的完整 PersistedRoundRecord。
 export async function settleRound(
   input: SettleRoundInput = {},
 ): Promise<PersistedRoundRecord> {

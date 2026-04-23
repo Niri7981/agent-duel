@@ -251,9 +251,11 @@ export default function AgentsPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <h2 className="text-2xl font-semibold tracking-tight">
-                        {agent.name}
-                      </h2>
+                      <Link href={`/agents/${agent.id}`} className="block">
+                        <h2 className="text-2xl font-semibold tracking-tight transition hover:text-emerald-300">
+                          {agent.name}
+                        </h2>
+                      </Link>
                       <p className="text-sm text-neutral-300">{agent.tagline}</p>
                     </div>
                   </div>
@@ -322,6 +324,15 @@ export default function AgentsPage() {
                   <p className="mt-1 break-all text-xs text-neutral-400">
                     Identity key: {agent.identityKey}
                   </p>
+                </div>
+
+                <div className="mt-5">
+                  <Link
+                    href={`/agents/${agent.id}`}
+                    className="inline-flex rounded-full border border-neutral-700 px-4 py-2 text-sm font-medium text-neutral-100 transition hover:border-neutral-500"
+                  >
+                    Open Profile
+                  </Link>
                 </div>
               </article>
             ))}

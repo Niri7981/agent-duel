@@ -492,6 +492,17 @@ More specifically:
 - explain non-obvious decisions briefly
 - prioritize working product flow over theoretical architecture
 
+For major functions in core product files, write reading-oriented Chinese
+comments in this exact structure:
+
+- `这里在干嘛`
+- `为什么这么写`
+- `最后返回什么`
+
+Use this especially in service-layer files, settlement / reputation flows,
+leaderboard logic, profile aggregation, and other core backend paths.
+The goal is to make the repo easy to read linearly, not only correct.
+
 When implementing a task:
 
 1. restate the goal

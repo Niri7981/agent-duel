@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
 
-import { getAgentPoolEntryById } from "@/lib/server/agents/get-agent-pool";
+import { getAgentProfile } from "@/lib/server/agents/get-agent-profile";
 
 export async function GET(
   _request: Request,
   context: { params: Promise<{ agentId: string }> },
 ) {
   const { agentId } = await context.params;
-  const agent = await getAgentPoolEntryById(agentId);
+  const profile = await getAgentProfile(agentId);
 
-  if (!agent) {
+  if (!profile) {
     return NextResponse.json(
       {
         error: "Agent Pool entry not found.",
@@ -18,5 +18,5 @@ export async function GET(
     );
   }
 
-  return NextResponse.json(agent);
+  return NextResponse.json(profile);
 }
