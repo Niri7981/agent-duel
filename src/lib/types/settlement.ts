@@ -3,6 +3,8 @@ export type SettledAgentReputation = {
   name: string;
   badge: string;
   currentRank: number;
+  previousRank: number | null;
+  rankDelta: number;
   currentStreak: number;
   bestStreak: number;
   totalWins: number;

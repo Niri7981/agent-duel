@@ -23,6 +23,9 @@ function mapRecordToLeaderboardEntry(
   record: AgentProfileRecord,
 ): LeaderboardEntry {
   const matchesPlayed = record.totalWins + record.totalLosses;
+  const previousRank = record.previousRank;
+  const rankDelta =
+    previousRank == null ? 0 : previousRank - record.currentRank;
 
   return {
     avatarSeed: record.avatarSeed,
@@ -35,6 +38,8 @@ function mapRecordToLeaderboardEntry(
     isActive: record.isActive,
     matchesPlayed,
     name: record.name,
+    previousRank,
+    rankDelta,
     riskProfile: record.riskProfile as LeaderboardEntry["riskProfile"],
     runtimeKey: record.runtimeKey,
     style: record.style,

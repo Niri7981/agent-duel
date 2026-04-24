@@ -1,6 +1,18 @@
 import { RoundSettlement } from "@/lib/types/settlement";
 import Link from "next/link";
 
+function formatRankMovement(rankDelta: number) {
+  if (rankDelta > 0) {
+    return `Up ${rankDelta}`;
+  }
+
+  if (rankDelta < 0) {
+    return `Down ${Math.abs(rankDelta)}`;
+  }
+
+  return "No Change";
+}
+
 export function SettlementResult({
   settlement,
 }: {
@@ -28,6 +40,9 @@ export function SettlementResult({
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-amber-200">
                 Rank #{settlement.winnerReputation.currentRank}
+              </span>
+              <span className="rounded-full border border-neutral-700 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-neutral-300">
+                {formatRankMovement(settlement.winnerReputation.rankDelta)}
               </span>
               <span className="rounded-full border border-neutral-700 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-neutral-300">
                 {settlement.winnerReputation.badge}

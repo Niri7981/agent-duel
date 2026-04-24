@@ -15,6 +15,8 @@ type InternalAgentProfile = {
   riskProfile: AgentPoolRiskProfile;
   badge: string;
   currentRank: number;
+  previousRank: number | null;
+  rankDelta: number;
   tagline: string;
   totalWins: number;
   totalLosses: number;
@@ -69,6 +71,18 @@ function formatWinRate(agent: InternalAgentProfile) {
   }
 
   return `${((agent.totalWins / totalMatches) * 100).toFixed(0)}%`;
+}
+
+function formatRankMovement(rankDelta: number) {
+  if (rankDelta > 0) {
+    return `↑ ${rankDelta}`;
+  }
+
+  if (rankDelta < 0) {
+    return `↓ ${Math.abs(rankDelta)}`;
+  }
+
+  return "—";
 }
 
 export default function AgentsPage() {
@@ -241,6 +255,9 @@ export default function AgentsPage() {
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-emerald-200">
                         Rank #{agent.currentRank}
+                      </span>
+                      <span className="rounded-full border border-neutral-700 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-neutral-400">
+                        {formatRankMovement(agent.rankDelta)}
                       </span>
                       <span className="rounded-full border border-neutral-700 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-neutral-400">
                         {agent.badge}

@@ -9,6 +9,8 @@ export type LeaderboardEntry = {
   badge: string;
   tagline: string;
   currentRank: number;
+  previousRank: number | null;
+  rankDelta: number;
   totalWins: number;
   totalLosses: number;
   currentStreak: number;
@@ -17,4 +19,3 @@ export type LeaderboardEntry = {
   winRate: number | null;
   isActive: boolean;
 };
-

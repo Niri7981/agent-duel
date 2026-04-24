@@ -1,5 +1,74 @@
 # PLANS.md
 
+## Immediate Plan: Battle History And Battle Record Layer
+
+### Goal
+
+Extract battle history from the agent profile service into a dedicated backend
+layer.
+
+The next implementation step is to expose:
+
+- a stable battle record shape
+- a battle history listing service
+- a single battle record service
+- battle APIs that frontend surfaces can consume directly
+
+### Minimum Viable Implementation
+
+Build a `battles` backend layer on top of existing `Round`, `RoundEvent`,
+`RoundAgent`, `Action`, and `Settlement` data.
+
+This layer should provide:
+
+- a `BattleRecord` type
+- `getBattleHistory()` for list views
+- `getBattleRecord()` for one battle
+- `GET /api/battles`
+- `GET /api/battles/:roundId`
+
+For MVP, battle records remain derived from the existing round tables instead of
+being materialized into a separate database table.
+
+### Product Layer Impact
+
+This work primarily advances:
+
+1. round / battle layer
+2. leaderboard / profile / reputation layer
+3. public proof layer
+
+It is the shortest path from "agent profile has recent battles" to "the product
+has a reusable public battle record surface."
+
+### Technical Layer Impact
+
+This work primarily touches:
+
+1. backend orchestration layer
+2. storage / indexing / stats layer
+3. API layer for frontend consumption
+
+### Affected Files
+
+- `/Users/irin/agent-duel/PLANS.md`
+- `/Users/irin/agent-duel/src/lib/server/agents/get-agent-profile.ts`
+
+### New Files
+
+- `/Users/irin/agent-duel/src/lib/server/battles/types.ts`
+- `/Users/irin/agent-duel/src/lib/server/battles/get-battle-history.ts`
+- `/Users/irin/agent-duel/src/lib/server/battles/get-battle-record.ts`
+- `/Users/irin/agent-duel/src/app/api/battles/route.ts`
+- `/Users/irin/agent-duel/src/app/api/battles/[roundId]/route.ts`
+
+### Implementation Order
+
+1. Define the canonical battle record shape.
+2. Build list and single-record services.
+3. Expose battle APIs.
+4. Reuse the new battle layer from agent profile history.
+
 ## Immediate Plan: Agent Profile And Match History
 
 ### Goal

@@ -1,5 +1,6 @@
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
+import { buildBattleProofPayload } from "@/lib/server/battles/build-battle-proof-payload";
 import { recomputeLeaderboardRanks } from "@/lib/server/leaderboard/recompute-ranks";
 
 import type { PersistedRoundRecord } from "./get-latest-round";
@@ -51,8 +52,6 @@ function buildInitialBalances(round: PersistedRoundRecord) {
 // 为什么这么写：
 // settlement 只能告诉我们 round 里谁赢了，
 // 但 reputation 更新要改的是全局 AgentProfile，所以这里要先把两边对应起来。
-// 同时这里兼容了旧数据：
-// 优先按 identityKey 精确匹配；找不到时再退回 runtimeKey。
 // 最后返回什么：
 // 返回一个数组，里面每项都包含 round 内参赛快照和对应的全局 profile。
 async function findAgentProfilesForRound(
@@ -63,41 +62,41 @@ async function findAgentProfilesForRound(
 
   const profiles = await tx.agentProfile.findMany({
     where: {
-      OR: [{ identityKey: { in: agentKeys } }, { runtimeKey: { in: agentKeys } }],
+      identityKey: { in: agentKeys },
     },
   });
 
   return round.agents.map((agent) => {
-    const exactIdentityMatch = profiles.find(
+    const profile = profiles.find(
       (profile) => profile.identityKey === agent.agentKey,
     );
 
-    if (exactIdentityMatch) {
+    if (profile) {
       return {
         agent,
-        profile: exactIdentityMatch,
+        profile,
       };
-    }
-
-    const runtimeMatches = profiles.filter(
-      (profile) => profile.runtimeKey === agent.agentKey,
-    );
-
-    if (runtimeMatches.length === 1) {
-      return {
-        agent,
-        profile: runtimeMatches[0],
-      };
-    }
-
-    if (runtimeMatches.length > 1) {
-      throw new Error(
-        `Round agent ${agent.agentKey} matches multiple agent profiles by runtimeKey.`,
-      );
     }
 
     throw new Error(`No agent profile found for round agent ${agent.agentKey}.`);
   });
+}
+
+function snapshotProfileState(
+  profile: Awaited<ReturnType<typeof prisma.agentProfile.findFirst>> extends infer TResult
+    ? NonNullable<TResult>
+    : never,
+) {
+  return {
+    bestStreak: profile.bestStreak,
+    currentRank: profile.currentRank,
+    currentStreak: profile.currentStreak,
+    identityKey: profile.identityKey,
+    name: profile.name,
+    previousRank: profile.previousRank,
+    totalLosses: profile.totalLosses,
+    totalWins: profile.totalWins,
+  };
 }
 
 // 这里在干嘛：
@@ -111,11 +110,9 @@ async function findAgentProfilesForRound(
 // 这个函数本身不返回业务数据；它的作用是完成数据库里的 reputation 写回。
 async function applyAgentReputationUpdate(
   tx: Prisma.TransactionClient,
-  round: PersistedRoundRecord,
+  profileMappings: Awaited<ReturnType<typeof findAgentProfilesForRound>>,
   winnerAgentKey: string | null,
 ) {
-  const profileMappings = await findAgentProfilesForRound(tx, round);
-
   for (const { agent, profile } of profileMappings) {
     const isWinner = winnerAgentKey !== null && agent.agentKey === winnerAgentKey;
     const isDraw = winnerAgentKey === null;
@@ -237,6 +234,10 @@ export async function settleRound(
       startPrice: targetRound.event.startPrice,
     });
     const settlement = computeSettlement(targetRound, marketResolution.outcome);
+    const profileMappings = await findAgentProfilesForRound(tx, targetRound);
+    const beforeProfiles = profileMappings.map(({ profile }) =>
+      snapshotProfileState(profile),
+    );
 
     await tx.round.update({
       data: {
@@ -303,9 +304,42 @@ export async function settleRound(
 
     await applyAgentReputationUpdate(
       tx,
-      targetRound,
+      profileMappings,
       settlement.winnerAgentKey,
     );
+
+    const afterProfiles = (
+      await tx.agentProfile.findMany({
+        where: {
+          identityKey: {
+            in: targetRound.agents.map((agent) => agent.agentKey),
+          },
+        },
+      })
+    ).map((profile) => snapshotProfileState(profile));
+
+    const proofPayload = buildBattleProofPayload({
+      afterProfiles,
+      beforeProfiles,
+      round: targetRound,
+      settledAt,
+      settlement,
+    });
+
+    await tx.battleProofRecord.upsert({
+      create: {
+        payload: JSON.stringify(proofPayload),
+        proofVersion: proofPayload.proofVersion,
+        roundId: targetRound.id,
+      },
+      update: {
+        payload: JSON.stringify(proofPayload),
+        proofVersion: proofPayload.proofVersion,
+      },
+      where: {
+        roundId: targetRound.id,
+      },
+    });
 
     return tx.round.findUniqueOrThrow({
       include: roundInclude,

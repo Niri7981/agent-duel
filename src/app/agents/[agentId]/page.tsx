@@ -11,6 +11,18 @@ function formatWinRate(winRate: number | null) {
   return `${Math.round(winRate * 100)}%`;
 }
 
+function formatRankMovement(rankDelta: number) {
+  if (rankDelta > 0) {
+    return `↑ ${rankDelta}`;
+  }
+
+  if (rankDelta < 0) {
+    return `↓ ${Math.abs(rankDelta)}`;
+  }
+
+  return "—";
+}
+
 function resultTone(result: "win" | "loss" | "draw" | "pending") {
   if (result === "win") {
     return "border-emerald-500/30 bg-emerald-500/10 text-emerald-200";
@@ -53,6 +65,9 @@ export default async function AgentProfilePage({
               <div className="flex flex-wrap items-center gap-2">
                 <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-emerald-200">
                   Rank #{agent.currentRank}
+                </span>
+                <span className="rounded-full border border-neutral-700 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-neutral-300">
+                  {formatRankMovement(agent.rankDelta)}
                 </span>
                 <span className="rounded-full border border-neutral-700 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-neutral-300">
                   {agent.badge}
@@ -143,6 +158,14 @@ export default async function AgentProfilePage({
                 </p>
                 <p className="mt-2 text-2xl font-semibold text-neutral-100">
                   {formatWinRate(profile.winRate)}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-neutral-800 bg-neutral-950/70 p-4">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-neutral-500">
+                  Movement
+                </p>
+                <p className="mt-2 text-2xl font-semibold text-neutral-100">
+                  {formatRankMovement(agent.rankDelta)}
                 </p>
               </div>
               <div className="rounded-2xl border border-neutral-800 bg-neutral-950/70 p-4">

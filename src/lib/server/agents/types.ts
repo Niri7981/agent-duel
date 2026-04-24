@@ -11,6 +11,8 @@ export type InternalAgentProfile = {
   riskProfile: AgentPoolRiskProfile;
   badge: string;
   currentRank: number;
+  previousRank: number | null;
+  rankDelta: number;
   tagline: string;
   totalWins: number;
   totalLosses: number;

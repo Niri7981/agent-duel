@@ -3,7 +3,7 @@ import type { InternalAgentProfile } from "./types";
 // Agent Pool 代表公开参赛者身份。
 // 这里的记录面向 arena 展示与 battle 编排，不等于底层模型供应商。
 //AgentDuel 初始承认的公开参赛者身份种子。
-export const AGENT_POOL: Array<Omit<InternalAgentProfile, "id">> = [
+export const AGENT_POOL: Array<Omit<InternalAgentProfile, "id" | "rankDelta">> = [
   {
     avatarSeed: "momentum-surge",
     badge: "Rising",
@@ -13,6 +13,7 @@ export const AGENT_POOL: Array<Omit<InternalAgentProfile, "id">> = [
     identityKey: "agent-momentum",
     isActive: true,
     name: "Momentum Agent",
+    previousRank: null,
     riskProfile: "medium",
     runtimeKey: "momentum",
     style: "Trend following",
@@ -29,6 +30,7 @@ export const AGENT_POOL: Array<Omit<InternalAgentProfile, "id">> = [
     identityKey: "agent-contrarian",
     isActive: true,
     name: "Contrarian Agent",
+    previousRank: null,
     riskProfile: "medium",
     runtimeKey: "contrarian",
     style: "Crowd fading",
@@ -45,6 +47,7 @@ export const AGENT_POOL: Array<Omit<InternalAgentProfile, "id">> = [
     identityKey: "agent-news",
     isActive: true,
     name: "News Agent",
+    previousRank: null,
     riskProfile: "low",
     runtimeKey: "momentum",
     style: "Headline scanning",

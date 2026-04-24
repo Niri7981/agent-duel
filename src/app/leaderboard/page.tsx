@@ -10,6 +10,18 @@ function formatWinRate(winRate: number | null) {
   return `${Math.round(winRate * 100)}%`;
 }
 
+function formatRankMovement(rankDelta: number) {
+  if (rankDelta > 0) {
+    return `↑ ${rankDelta}`;
+  }
+
+  if (rankDelta < 0) {
+    return `↓ ${Math.abs(rankDelta)}`;
+  }
+
+  return "—";
+}
+
 export default async function LeaderboardPage() {
   const leaderboard = await getLeaderboard();
   const podium = leaderboard.slice(0, 3);
@@ -101,6 +113,9 @@ export default async function LeaderboardPage() {
                     {agent.badge}
                   </span>
                   <span className="rounded-full border border-neutral-700 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-neutral-300">
+                    {formatRankMovement(agent.rankDelta)}
+                  </span>
+                  <span className="rounded-full border border-neutral-700 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-neutral-300">
                     {agent.riskProfile}
                   </span>
                   <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-emerald-200">
@@ -170,6 +185,9 @@ export default async function LeaderboardPage() {
                   <div className="flex items-center gap-3">
                     <span className="rounded-full border border-neutral-700 px-3 py-1 text-xs text-neutral-300">
                       #{agent.currentRank}
+                    </span>
+                    <span className="rounded-full border border-neutral-700 px-3 py-1 text-xs text-neutral-300">
+                      {formatRankMovement(agent.rankDelta)}
                     </span>
                     <span className="rounded-full border border-neutral-700 px-3 py-1 text-xs text-neutral-300">
                       {agent.badge}

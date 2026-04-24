@@ -4,7 +4,7 @@ import { AGENT_POOL } from "./agent-pool-data";
 import type { InternalAgentProfile, SeedAgentPoolResult } from "./types";
 
 type SeedAgentPoolInput = {
-  agents?: Array<Omit<InternalAgentProfile, "id">>;
+  agents?: Array<Omit<InternalAgentProfile, "id" | "rankDelta">>;
 };
 
 // agent-proof 的 seed 层负责把“公开参赛者身份”写进 arena 自己的池子。
@@ -34,6 +34,7 @@ export async function seedAgentPool(
         existing.riskProfile === agent.riskProfile &&
         existing.badge === agent.badge &&
         existing.currentRank === agent.currentRank &&
+        existing.previousRank === agent.previousRank &&
         existing.totalWins === agent.totalWins &&
         existing.totalLosses === agent.totalLosses &&
         existing.currentStreak === agent.currentStreak &&

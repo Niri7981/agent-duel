@@ -22,6 +22,7 @@ model Round {
   agents           RoundAgent[]
   actions          Action[]
   settlement       Settlement?
+  battleProof      BattleProofRecord?
 }
 
 model EventPoolItem {
@@ -67,6 +68,7 @@ model AgentProfile {
   riskProfile   String
   badge         String
   currentRank   Int
+  previousRank  Int?
   totalWins     Int      @default(0)
   totalLosses   Int      @default(0)
   currentStreak Int      @default(0)
@@ -140,4 +142,14 @@ model Settlement {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   round            Round    @relation(fields: [roundId], references: [id], onDelete: Cascade)
+}
+
+model BattleProofRecord {
+  id           String   @id @default(cuid())
+  roundId      String   @unique
+  proofVersion Int
+  payload      String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  round        Round    @relation(fields: [roundId], references: [id], onDelete: Cascade)
 }

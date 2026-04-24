@@ -68,14 +68,16 @@ export async function recomputeLeaderboardRanks(client: RankWriteClient = prisma
 
   for (const [index, agent] of rankedAgents.entries()) {
     const nextRank = index + 1;
+    const previousRank = agent.currentRank;
 
-    if (agent.currentRank === nextRank) {
+    if (agent.currentRank === nextRank && agent.previousRank === previousRank) {
       continue;
     }
 
     await client.agentProfile.update({
       data: {
         currentRank: nextRank,
+        previousRank,
       },
       where: {
         id: agent.id,
@@ -86,5 +88,6 @@ export async function recomputeLeaderboardRanks(client: RankWriteClient = prisma
   return rankedAgents.map((agent, index) => ({
     ...agent,
     currentRank: index + 1,
+    previousRank: agent.currentRank,
   }));
 }

@@ -35,6 +35,10 @@ type AgentProfileRecord = NonNullable<
 function mapRecordToAgentProfile(
   record: AgentProfileRecord,
 ): InternalAgentProfile {
+  const previousRank = record.previousRank;
+  const rankDelta =
+    previousRank == null ? 0 : previousRank - record.currentRank;
+
   return {
     avatarSeed: record.avatarSeed,
     badge: record.badge,
@@ -45,6 +49,8 @@ function mapRecordToAgentProfile(
     identityKey: record.identityKey,
     isActive: record.isActive,
     name: record.name,
+    previousRank,
+    rankDelta,
     riskProfile: record.riskProfile as InternalAgentProfile["riskProfile"],
     runtimeKey: record.runtimeKey,
     style: record.style,
@@ -123,31 +129,6 @@ export async function getAgentPoolEntryByIdentityKey(
   const record = await prisma.agentProfile.findUnique({
     where: {
       identityKey,
-    },
-  });
-
-  return record ? mapRecordToAgentProfile(record) : null;
-}
-
-// 这里在干嘛：
-// 按 runtimeKey 反查当前活跃的公开 agent。
-// 为什么这么写：
-// runtimeKey 更像“底层脑子/执行入口”的键。
-// 某些旧 round 数据或 runtime 层逻辑，手里拿到的可能还是 runtimeKey，
-// 这时需要从 runtimeKey 反推回公开身份。
-// 这里不用 findUnique，而是 findFirst，
-// 因为同一个 runtimeKey 理论上可能暂时被多个 agent profile 复用。
-// 于是这里选择“当前 rank 更高、wins 更多”的 active agent 作为默认命中对象。
-// 最后返回什么：
-// 返回一个最匹配的活跃 InternalAgentProfile，或者在找不到时返回 null。
-export async function getAgentPoolEntryByRuntimeKey(
-  runtimeKey: string,
-): Promise<InternalAgentProfile | null> {
-  const record = await prisma.agentProfile.findFirst({
-    orderBy: [{ currentRank: "asc" }, { totalWins: "desc" }],
-    where: {
-      isActive: true,
-      runtimeKey,
     },
   });
 

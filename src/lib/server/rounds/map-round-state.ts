@@ -5,10 +5,7 @@ import type { BankrollBalance, RoundState } from "@/lib/types/round";
 import type { RoundSettlement } from "@/lib/types/settlement";
 
 import type { PersistedRoundRecord } from "./get-latest-round";
-import {
-  getAgentPoolEntryByIdentityKey,
-  getAgentPoolEntryByRuntimeKey,
-} from "@/lib/server/agents/get-agent-pool";
+import { getAgentPoolEntryByIdentityKey } from "@/lib/server/agents/get-agent-pool";
 
 // 把某个 action 的创建时间，换算成“距离 round 开始已经过了多久”。
 function formatElapsedTime(createdAt: Date, startsAt: Date | null) {
@@ -85,8 +82,7 @@ async function mapSettlement(round: PersistedRoundRecord): Promise<RoundSettleme
   const winnerProfile =
     round.settlement?.winnerAgentKey == null
       ? null
-      : (await getAgentPoolEntryByIdentityKey(round.settlement.winnerAgentKey)) ??
-        (await getAgentPoolEntryByRuntimeKey(round.settlement.winnerAgentKey));
+      : await getAgentPoolEntryByIdentityKey(round.settlement.winnerAgentKey);
 
   return {
     finalBalance: round.settlement?.finalBalance ?? fallbackBalance,
@@ -104,6 +100,8 @@ async function mapSettlement(round: PersistedRoundRecord): Promise<RoundSettleme
             currentStreak: winnerProfile.currentStreak,
             identityKey: winnerProfile.identityKey,
             name: winnerProfile.name,
+            previousRank: winnerProfile.previousRank,
+            rankDelta: winnerProfile.rankDelta,
             totalLosses: winnerProfile.totalLosses,
             totalWins: winnerProfile.totalWins,
           },

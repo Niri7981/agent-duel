@@ -244,6 +244,16 @@ Always think in this structure:
 - agent = public competitor identity
 - adapter = interface between the arena and the model/provider
 
+Key naming must stay explicit:
+
+- `identityKey` = the stable public identity key
+- `runtimeKey` = the execution / adapter key used by the runtime layer
+- `agentKey` = the battle-layer participant key stored on `RoundAgent`
+
+`agentKey` should point to public identity, which means it should match
+`identityKey`, not `runtimeKey`.
+Do not mix these three keys together.
+
 The arena should care about a standardized decision interface, not which model
 is underneath.
 
@@ -519,3 +529,38 @@ Always remember:
 This project is not ultimately about AI making predictions.
 It is about giving agents a real public identity, earned through battle,
 recorded onchain, and made legible to everyone.
+
+## Prisma query typing rules
+
+When using Prisma, NEVER assume a base model type is the same as a query result type.
+
+Rules:
+- If a query uses `include` or `select`, derive the result type from that exact query shape.
+- Do not use naked table record types for relation-loaded results.
+- Do not hand-wave Prisma result types with a guessed `XRecord` alias.
+- Prefer query-shape-driven typing over model-name-driven typing.
+
+Required practice:
+1. If a Prisma result is reused across functions, define the query args first.
+2. Derive the payload type from that exact query args shape.
+3. Keep these layers separate:
+   - base database row type
+   - relation-loaded query result type
+   - API/view model type
+4. If a query changes (`include`, `select`, nested relations), update the derived result type in the same edit.
+5. Never type a relation-loaded object as a bare model row.
+
+Preferred mindset:
+- query shape determines result type
+- base model type is only for bare rows
+- API/view models should be mapped explicitly, not assumed
+
+Naming guidance:
+- `AgentProfileRow` = bare DB row
+- `AgentProfileWithRelations` = include/select-loaded result
+- `LeaderboardEntry` / `RoundResponse` = API or view model
+
+If unsure:
+- let Prisma infer the local result type first
+- then extract a type from the real query shape
+- do not guess
