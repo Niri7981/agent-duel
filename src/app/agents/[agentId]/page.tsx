@@ -11,10 +11,47 @@ import {
   History,
   Fingerprint,
   Target,
-  BarChart3
+  BarChart3,
+  Brain,
+  Cpu
 } from "lucide-react";
 
 import { getAgentProfile } from "@/lib/server/agents/get-agent-profile";
+import type { AgentBrainProvider } from "@/lib/server/agents/types";
+
+function formatBrainProvider(provider: AgentBrainProvider | null) {
+  if (provider == null) {
+    return "Unknown";
+  }
+
+  if (provider === "openai") {
+    return "OpenAI";
+  }
+
+  if (provider === "anthropic") {
+    return "Anthropic";
+  }
+
+  if (provider === "rules") {
+    return "Internal Rules";
+  }
+
+  return "Mock";
+}
+
+function formatBrainSwappedAt(value: string | null) {
+  if (!value) {
+    return "Never swapped";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Never swapped";
+  }
+
+  return date.toLocaleString();
+}
 
 function formatWinRate(winRate: number | null) {
   if (winRate == null) {
@@ -156,6 +193,29 @@ export default async function AgentProfilePage({
               <div className="p-6 rounded-3xl bg-neutral-950/60 border border-neutral-800/50 space-y-3">
                 <p className="text-[10px] uppercase tracking-[0.3em] font-black text-neutral-600">Genesis Hash</p>
                 <p className="text-lg font-bold text-neutral-200 truncate">{agent.avatarSeed}</p>
+              </div>
+              <div className="p-6 rounded-3xl bg-neutral-950/60 border border-emerald-500/20 space-y-3 sm:col-span-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Brain className="w-4 h-4 text-emerald-400" />
+                    <p className="text-[10px] uppercase tracking-[0.3em] font-black text-emerald-400">Active Brain</p>
+                  </div>
+                  <span className="text-[10px] uppercase tracking-[0.3em] font-black text-neutral-500">
+                    Last swap: {formatBrainSwappedAt(agent.brainSwappedAt)}
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="px-3 py-1.5 rounded-full border border-neutral-700 bg-neutral-900/70 text-xs uppercase tracking-[0.2em] font-black text-neutral-200">
+                    {formatBrainProvider(agent.brainProvider)}
+                  </div>
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-xs font-mono font-bold text-emerald-300">
+                    <Cpu className="w-3.5 h-3.5" />
+                    {agent.brainModel ?? "model unspecified"}
+                  </div>
+                </div>
+                <p className="text-xs italic text-neutral-500 leading-relaxed">
+                  Identity is permanent. Brain is swappable. The arena tracks both — so reputation is portable, not model-locked.
+                </p>
               </div>
             </div>
           </article>

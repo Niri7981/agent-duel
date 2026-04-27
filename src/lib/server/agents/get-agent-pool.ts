@@ -9,7 +9,11 @@ import type { GetAgentPoolInput, InternalAgentProfile } from "./types";
 // 不用再回头单独 import ./types。
 // 最后返回什么：
 // 这里本身不返回运行时值，只是把类型导出给别的文件使用。
-export type { AgentPoolRiskProfile, InternalAgentProfile } from "./types";
+export type {
+  AgentBrainProvider,
+  AgentPoolRiskProfile,
+  InternalAgentProfile,
+} from "./types";
 
 // 这里在干嘛：
 // 基于 Prisma 查询结果，推导出“数据库里一条 AgentProfile 记录”的 TS 类型。
@@ -43,6 +47,12 @@ function mapRecordToAgentProfile(
     avatarSeed: record.avatarSeed,
     badge: record.badge,
     bestStreak: record.bestStreak,
+    brainModel: record.brainModel ?? null,
+    brainProvider:
+      (record.brainProvider as InternalAgentProfile["brainProvider"]) ?? null,
+    brainSwappedAt: record.brainSwappedAt
+      ? record.brainSwappedAt.toISOString()
+      : null,
     currentRank: record.currentRank,
     currentStreak: record.currentStreak,
     id: record.id,

@@ -1,10 +1,11 @@
-import type { AgentSummary } from "@/lib/types/agent";
+import type { AgentBrain, AgentSummary } from "@/lib/types/agent";
 import type { RoundAction } from "@/lib/types/action";
 import type { ArenaEvent } from "@/lib/types/event";
 import type { BankrollBalance, RoundState } from "@/lib/types/round";
 import type { RoundSettlement } from "@/lib/types/settlement";
 
 import type { PersistedRoundRecord } from "./get-latest-round";
+import { prisma } from "@/lib/db/prisma";
 import { getAgentPoolEntryByIdentityKey } from "@/lib/server/agents/get-agent-pool";
 
 // 把某个 action 的创建时间，换算成“距离 round 开始已经过了多久”。
@@ -36,8 +37,57 @@ function mapEvent(round: PersistedRoundRecord): ArenaEvent {
   };
 }
 
-function mapAgents(round: PersistedRoundRecord): AgentSummary[] {
+// 把 AgentProfile 上的 brain 字段拼回 AgentSummary。
+// 注意：当前是按 identityKey 实时查 pool，
+// 这意味着如果某个 agent 的 brain 在 round 之后被 swap 过，
+// 历史 round 也会显示新的 brain。
+// 这是 MVP 的折中——真正的“历史快照式 brain 证据”将来会进 RoundAgent 表。
+async function loadBrainsForRound(
+  round: PersistedRoundRecord,
+): Promise<Map<string, AgentBrain>> {
+  const identityKeys = round.agents.map((agent) => agent.agentKey);
+
+  if (identityKeys.length === 0) {
+    return new Map();
+  }
+
+  const profiles = await prisma.agentProfile.findMany({
+    where: {
+      identityKey: { in: identityKeys },
+    },
+  });
+
+  const brainsByIdentity = new Map<string, AgentBrain>();
+
+  for (const profile of profiles) {
+    if (!profile.brainProvider || !profile.brainModel) {
+      continue;
+    }
+
+    brainsByIdentity.set(profile.identityKey, {
+      model: profile.brainModel,
+      provider:
+        profile.brainProvider === "openai" ||
+        profile.brainProvider === "anthropic" ||
+        profile.brainProvider === "rules" ||
+        profile.brainProvider === "mock"
+          ? profile.brainProvider
+          : "rules",
+      swappedAt: profile.brainSwappedAt
+        ? profile.brainSwappedAt.toISOString()
+        : null,
+    });
+  }
+
+  return brainsByIdentity;
+}
+
+function mapAgents(
+  round: PersistedRoundRecord,
+  brainsByIdentity: Map<string, AgentBrain>,
+): AgentSummary[] {
   return round.agents.map((agent) => ({
+    brain: brainsByIdentity.get(agent.agentKey) ?? null,
     id: agent.agentKey,
     name: agent.name,
     riskProfile:
@@ -111,9 +161,11 @@ async function mapSettlement(round: PersistedRoundRecord): Promise<RoundSettleme
 // 这里专门做“数据库结构 -> 页面结构”的翻译。
 // 这样前端不用知道 Prisma 表长什么样，后面改表也不会一路牵连到 UI。
 export async function mapRoundToState(round: PersistedRoundRecord): Promise<RoundState> {
+  const brainsByIdentity = await loadBrainsForRound(round);
+
   return {
     actions: mapActions(round),
-    agents: mapAgents(round),
+    agents: mapAgents(round, brainsByIdentity),
     balances: mapBalances(round),
     bankrollPerAgent: round.bankrollPerAgent,
     event: mapEvent(round),

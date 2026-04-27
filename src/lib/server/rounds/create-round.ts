@@ -100,7 +100,7 @@ export async function createRound(input: CreateRoundInput = {}) {
       id: event.id,
     };
 
-    const decisions = runRoundAgentRuntime({
+    const decisions = await runRoundAgentRuntime({
       agents: runtimeAgents,
       bankrollUsd: bankrollPerAgent,
       currentPrice: market.currentPrice,

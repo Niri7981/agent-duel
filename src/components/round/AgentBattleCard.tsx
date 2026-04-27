@@ -3,13 +3,34 @@
 import { AgentSummary } from "@/lib/types/agent";
 import { RoundAction } from "@/lib/types/action";
 import { BankrollBalance } from "@/lib/types/round";
-import { Radar, Shield, Swords, TrendingUp } from "lucide-react";
+import { Brain, Radar, Shield, Swords, TrendingUp } from "lucide-react";
 
 interface AgentBattleCardProps {
   agent: AgentSummary;
   action?: RoundAction;
   balance?: BankrollBalance;
   side: "left" | "right";
+}
+
+function formatBrainLabel(brain: AgentSummary["brain"]) {
+  if (!brain) {
+    return "Rules • internal";
+  }
+
+  if (brain.provider === "rules") {
+    return `Rules • ${brain.model}`;
+  }
+
+  const providerLabel =
+    brain.provider === "openai"
+      ? "OpenAI"
+      : brain.provider === "anthropic"
+        ? "Anthropic"
+        : brain.provider === "mock"
+          ? "Mock"
+          : brain.provider;
+
+  return `${providerLabel} • ${brain.model}`;
 }
 
 export function AgentBattleCard({ agent, action, balance, side }: AgentBattleCardProps) {
@@ -89,6 +110,7 @@ export function AgentBattleCard({ agent, action, balance, side }: AgentBattleCar
         <div className="mx-auto grid w-full max-w-[210px] gap-1.5 p-1.5 md:max-w-[260px] md:gap-3 md:p-5">
           <BattleStat label="Style" value={agent.style} />
           <BattleStat label="Risk" value={agent.riskProfile} accent={themeColor} />
+          <BattleStat label="Brain" value={formatBrainLabel(agent.brain)} icon={<Brain className="h-3 w-3 md:h-4 md:w-4" />} />
           <BattleStat label="Bankroll" value={`${balance?.usdc.toFixed(2) ?? "0.00"} USDC`} />
           <BattleStat label="Status" value={action ? "Ready" : "Loading"} />
         </div>
@@ -109,17 +131,20 @@ export function AgentBattleCard({ agent, action, balance, side }: AgentBattleCar
 
 function BattleStat({
   accent = "#050505",
+  icon,
   label,
   value,
 }: {
   accent?: string;
+  icon?: React.ReactNode;
   label: string;
   value: string;
 }) {
   return (
     <div className="grid grid-cols-1 items-center border-[2px] border-black bg-[#fcee09] text-center md:border-[3px]">
-      <div className="border-b-[2px] border-black px-1.5 py-1 font-mono text-[6px] font-black uppercase tracking-[0.08em] text-black md:px-3 md:py-2 md:text-[8px] md:tracking-[0.2em]">
-        {label}
+      <div className="flex items-center justify-center gap-1 border-b-[2px] border-black px-1.5 py-1 font-mono text-[6px] font-black uppercase tracking-[0.08em] text-black md:px-3 md:py-2 md:text-[8px] md:tracking-[0.2em]">
+        {icon}
+        <span>{label}</span>
       </div>
       <div className="truncate px-1.5 py-1 text-[8px] font-black uppercase tracking-wide text-black md:px-3 md:py-2 md:text-xs lg:text-sm" style={{ color: accent }}>
         {value}

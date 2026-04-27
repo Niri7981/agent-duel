@@ -2,12 +2,28 @@ import type { InternalAgentProfile } from "./types";
 
 // Agent Pool 代表公开参赛者身份。
 // 这里的记录面向 arena 展示与 battle 编排，不等于底层模型供应商。
+//
+// brain 字段说明：
+// - brainProvider / brainModel 是 “这个公开 agent 当前用什么大脑在思考”
+// - 同一个 agent 可以换 brain 但保留 identityKey 和战绩
+//   （这是 AgentDuel 最核心的 “Agent != Model” 抽象）
+//
+// runtimeKey 控制内部 adapter：
+// - "momentum" / "contrarian"：内置规则，brainProvider = "rules"
+// - "llm-news" / "llm-quant"：LLM-backed adapter，按 brain 配置选 OpenAI / Anthropic
 //AgentDuel 初始承认的公开参赛者身份种子。
-export const AGENT_POOL: Array<Omit<InternalAgentProfile, "id" | "rankDelta">> = [
+export const AGENT_POOL: Array<
+  Omit<InternalAgentProfile, "id" | "rankDelta" | "brainSwappedAt"> & {
+    brainSwappedAt: string | null;
+  }
+> = [
   {
     avatarSeed: "momentum-surge",
     badge: "Rising",
     bestStreak: 4,
+    brainModel: "rules-momentum-v1",
+    brainProvider: "rules",
+    brainSwappedAt: null,
     currentRank: 1,
     currentStreak: 3,
     identityKey: "agent-momentum",
@@ -25,6 +41,9 @@ export const AGENT_POOL: Array<Omit<InternalAgentProfile, "id" | "rankDelta">> =
     avatarSeed: "contrarian-vault",
     badge: "Provocateur",
     bestStreak: 5,
+    brainModel: "rules-contrarian-v1",
+    brainProvider: "rules",
+    brainSwappedAt: null,
     currentRank: 2,
     currentStreak: 1,
     identityKey: "agent-contrarian",
@@ -42,6 +61,9 @@ export const AGENT_POOL: Array<Omit<InternalAgentProfile, "id" | "rankDelta">> =
     avatarSeed: "news-flash",
     badge: "Scout",
     bestStreak: 2,
+    brainModel: "gpt-5",
+    brainProvider: "openai",
+    brainSwappedAt: "2026-04-12T00:00:00.000Z",
     currentRank: 3,
     currentStreak: 0,
     identityKey: "agent-news",
@@ -49,10 +71,52 @@ export const AGENT_POOL: Array<Omit<InternalAgentProfile, "id" | "rankDelta">> =
     name: "News Agent",
     previousRank: null,
     riskProfile: "low",
-    runtimeKey: "momentum",
+    runtimeKey: "llm-news",
     style: "Headline scanning",
     tagline: "Prefers quick reactions when a new signal changes the narrative.",
     totalLosses: 4,
     totalWins: 4,
+  },
+  {
+    avatarSeed: "quant-lattice",
+    badge: "Disciplined",
+    bestStreak: 3,
+    brainModel: "claude-3-5-sonnet-latest",
+    brainProvider: "anthropic",
+    brainSwappedAt: "2026-04-18T00:00:00.000Z",
+    currentRank: 4,
+    currentStreak: 1,
+    identityKey: "agent-quant",
+    isActive: true,
+    name: "Quant Agent",
+    previousRank: null,
+    riskProfile: "medium",
+    runtimeKey: "llm-quant",
+    style: "Microstructure & reversion",
+    tagline:
+      "Reads short-horizon imbalances and sizes by conviction, never bankroll.",
+    totalLosses: 1,
+    totalWins: 3,
+  },
+  {
+    avatarSeed: "macro-pulse",
+    badge: "Strategist",
+    bestStreak: 2,
+    brainModel: "gpt-5",
+    brainProvider: "openai",
+    brainSwappedAt: "2026-04-22T00:00:00.000Z",
+    currentRank: 5,
+    currentStreak: 0,
+    identityKey: "agent-macro",
+    isActive: true,
+    name: "Macro Agent",
+    previousRank: null,
+    riskProfile: "high",
+    runtimeKey: "llm-news",
+    style: "Macro narrative",
+    tagline:
+      "Tracks regime shifts and sides with the dominant macro narrative of the week.",
+    totalLosses: 2,
+    totalWins: 2,
   },
 ];

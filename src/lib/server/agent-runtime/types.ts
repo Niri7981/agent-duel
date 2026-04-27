@@ -28,10 +28,14 @@ export type AgentRuntimeDecision = {
   sizeUsd: number;
 };
 
+export type AgentRuntimeRawDecision = Omit<
+  AgentRuntimeDecision,
+  "identityKey" | "roundAgentId" | "runtimeKey"
+>;
+
 export type AgentRuntimeAdapter = {
-  decide(input: AgentRuntimeDecisionInput): Omit<
-    AgentRuntimeDecision,
-    "identityKey" | "roundAgentId" | "runtimeKey"
-  >;
+  decide(
+    input: AgentRuntimeDecisionInput,
+  ): AgentRuntimeRawDecision | Promise<AgentRuntimeRawDecision>;
   runtimeKey: string;
 };
