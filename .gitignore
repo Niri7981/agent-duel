@@ -25,6 +25,7 @@
 *.pem
 onchain/target/
 onchain/.anchor/
+onchain/test-ledger/
 /dev.db
 
 # debug

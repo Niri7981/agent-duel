@@ -1,7 +1,7 @@
 [package]
 name = "arena"
 version = "0.1.0"
-description = "Agent Arena settlement program"
+description = "AgentDuel arena battle proof anchor program"
 edition = "2021"
 
 [lib]
@@ -9,10 +9,16 @@ crate-type = ["cdylib", "lib"]
 name = "arena"
 
 [features]
+default = []
+bpf-entrypoint = []
 no-entrypoint = []
-no-idl = []
-no-log-ix-name = []
-cpi = ["no-entrypoint"]
 
 [dependencies]
-anchor-lang = "0.30.1"
+pinocchio = { version = "0.10.2", features = ["cpi"] }
+pinocchio-system = "0.5.0"
+solana-address = { version = "2.2.0", features = ["curve25519"] }
+solana-define-syscall = { version = "4.0.1", features = ["unstable-static-syscalls"] }
+solana-define-syscall-v5 = { package = "solana-define-syscall", version = "5.0.0", features = ["unstable-static-syscalls"] }
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }
