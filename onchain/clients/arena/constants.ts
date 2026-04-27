@@ -7,11 +7,17 @@ export const ARENA_PROGRAM_ID = new PublicKey(
 export const BATTLE_PROOF_SEED_PREFIX = "battle_proof";
 
 export const RECORD_BATTLE_PROOF_DISCRIMINATOR = 0;
+export const BATTLE_PROOF_ANCHOR_DISCRIMINATOR = 1;
+export const BATTLE_PROOF_ANCHOR_VERSION = 1;
 
 export const ROUND_ID_SEED_LENGTH = 32;
 export const ROUND_ID_MAX_LENGTH = 64;
 export const PROOF_HASH_LENGTH = 32;
 export const IDENTITY_KEY_MAX_LENGTH = 64;
+export const AUTHORITY_LENGTH = 32;
+export const BATTLE_PROOF_ANCHOR_DATA_LENGTH = 240;
+export const BATTLE_PROOF_ANCHOR_ACCOUNT_LENGTH =
+  2 + BATTLE_PROOF_ANCHOR_DATA_LENGTH;
 
 export const RECORD_BATTLE_PROOF_DATA_LENGTH =
   1 +

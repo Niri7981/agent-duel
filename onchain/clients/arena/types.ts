@@ -17,3 +17,17 @@ export type BattleProofPda = {
   proofAddress: PublicKey;
   roundIdSeed: Uint8Array;
 };
+
+export type DecodedBattleProofAnchor = {
+  authority: PublicKey;
+  proofHash: string;
+  roundIdSeed: Uint8Array;
+  roundId: string;
+  winnerIdentityKey: string | null;
+  settledAtUnix: number;
+  proofVersion: number;
+  winningSide: RecordBattleProofWinningSide;
+  roundIdLength: number;
+  winnerIdentityKeyLength: number;
+  bump: number;
+};

@@ -19,5 +19,9 @@ pub fn process_instruction(
     accounts: &[AccountView],
     instruction_data: &[u8],
 ) -> ProgramResult {
+    if program_id != &ID {
+        return Err(pinocchio::error::ProgramError::IncorrectProgramId);
+    }
+
     instructions::process_instruction(program_id, accounts, instruction_data)
 }

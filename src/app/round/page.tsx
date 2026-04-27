@@ -24,6 +24,9 @@ export type RoundProofReceipt = {
   proofHashEncoding?: string | null;
   proofVersion?: number | null;
   slot?: number | null;
+  verificationError?: string | null;
+  verificationStatus?: "missing" | "mismatch" | "pending" | "verified";
+  verified?: boolean;
 };
 
 export type RoundLeaderboardEntry = {
@@ -208,6 +211,16 @@ async function readBattleProof(roundId: string): Promise<RoundProofReceipt | nul
       readNumber(payloadRecord, ["proofVersion"]) ??
       readNumber(record, ["proofVersion"]),
     slot: readNumber(record, ["slot", "confirmedSlot"]),
+    verificationError: readString(record, ["verificationError"]),
+    verificationStatus:
+      readString(record, ["verificationStatus"]) === "verified"
+        ? "verified"
+        : readString(record, ["verificationStatus"]) === "mismatch"
+          ? "mismatch"
+          : readString(record, ["verificationStatus"]) === "missing"
+            ? "missing"
+            : "pending",
+    verified: record.verified === true,
   };
 }
 
@@ -320,18 +333,18 @@ export default function RoundPage() {
     let cancelled = false;
 
     if (!round || round.status !== "settled") {
-      setProof(null);
-      setProofErrorMessage(null);
-      setIsProofLoading(false);
       return () => {
         cancelled = true;
       };
     }
 
-    setIsProofLoading(true);
-    setProofErrorMessage(null);
     void (async () => {
       try {
+        if (!cancelled) {
+          setIsProofLoading(true);
+          setProofErrorMessage(null);
+        }
+
         const nextProof = await readBattleProof(round.id);
         if (!cancelled) {
           setProof(nextProof);
@@ -352,24 +365,24 @@ export default function RoundPage() {
     return () => {
       cancelled = true;
     };
-  }, [round?.id, round?.status]);
+  }, [round]);
 
   useEffect(() => {
     let cancelled = false;
 
     if (!round || round.status !== "settled") {
-      setLeaderboard([]);
-      setLeaderboardErrorMessage(null);
-      setIsLeaderboardLoading(false);
       return () => {
         cancelled = true;
       };
     }
 
-    setIsLeaderboardLoading(true);
-    setLeaderboardErrorMessage(null);
     void (async () => {
       try {
+        if (!cancelled) {
+          setIsLeaderboardLoading(true);
+          setLeaderboardErrorMessage(null);
+        }
+
         const nextLeaderboard = await readLeaderboard();
         if (!cancelled) {
           setLeaderboard(nextLeaderboard);
@@ -390,7 +403,7 @@ export default function RoundPage() {
     return () => {
       cancelled = true;
     };
-  }, [round?.id, round?.status]);
+  }, [round]);
 
   useEffect(() => {
     if (!shouldScrollToProof || round?.status !== "settled") {

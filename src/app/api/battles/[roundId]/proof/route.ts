@@ -34,6 +34,9 @@ export async function GET(
       proofHashEncoding: "canonical-json-v1",
       proofVersion: proof.proofVersion,
       slot: null,
+      verificationError: null,
+      verificationStatus: "pending" as const,
+      verified: false,
     },
   });
 }

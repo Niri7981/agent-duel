@@ -23,6 +23,9 @@ type ProofReceipt = {
   proofHashEncoding?: string | null;
   proofVersion?: number | null;
   slot?: number | null;
+  verificationError?: string | null;
+  verificationStatus?: "missing" | "mismatch" | "pending" | "verified";
+  verified?: boolean;
 };
 
 type LeaderboardEntry = {
@@ -71,11 +74,19 @@ export function SettlementPanel({
   const themeColor = isWinnerMomentum ? "#ff1f2d" : "#39ff14";
   const hasLocalTx = Boolean(proof?.onchainSignature);
   const proofHashStatus = proof?.proofHash ? "Hash Locked" : "Hash Pending";
-  const anchorStatus = hasLocalTx
-    ? "Local Tx Confirmed"
-    : isProofLoading
-      ? "Reading Proof"
-      : "Waiting For Local Tx";
+  const verificationStatus = proof?.verificationStatus ?? "pending";
+  const isVerified = proof?.verified === true;
+  const anchorStatus = isVerified
+    ? "PDA Verified"
+    : verificationStatus === "mismatch"
+      ? "PDA Mismatch"
+      : verificationStatus === "missing"
+        ? "PDA Missing"
+        : hasLocalTx
+          ? "Tx Confirmed"
+          : isProofLoading
+            ? "Reading Proof"
+            : "Waiting For Local Tx";
   const winnerReputation =
     settlement.winnerReputation ??
     leaderboard.find((agent) => {
@@ -112,7 +123,7 @@ export function SettlementPanel({
           <ProofCell label="Final PnL" value={`+${settlement.pnlUsd.toFixed(2)}`} accent={themeColor} />
           <ProofCell label="Outcome" value={outcome.toUpperCase()} />
           <ProofCell label="Proof Hash" value={proofHashStatus} accent="#fcee09" />
-          <ProofCell label="Status" value={anchorStatus} accent={hasLocalTx ? "#39ff14" : "#ffb000"} />
+          <ProofCell label="Status" value={anchorStatus} accent={isVerified ? "#39ff14" : verificationStatus === "mismatch" ? "#ff1f2d" : "#ffb000"} />
         </div>
 
         <div className="mt-5 grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
@@ -139,10 +150,16 @@ export function SettlementPanel({
         <div className="mt-5 flex flex-wrap items-center justify-between gap-4 border-[4px] border-[#202326] bg-[#111111] p-4">
            <div
              className="flex items-center gap-3 font-mono text-[10px] font-black uppercase tracking-[0.2em]"
-             style={{ color: hasLocalTx ? "#39ff14" : "#ffb000" }}
+             style={{ color: isVerified ? "#39ff14" : verificationStatus === "mismatch" ? "#ff1f2d" : "#ffb000" }}
            >
               <ShieldCheck className="h-4 w-4" />
-              {hasLocalTx ? "Battle Proof Anchored On Localnet" : "Canonical Proof Hash Ready / Localnet Tx Pending"}
+              {isVerified
+                ? "Battle Proof PDA Verified On Localnet"
+                : verificationStatus === "mismatch"
+                  ? `Proof PDA Verification Failed: ${proof?.verificationError ?? "Mismatch"}`
+                  : hasLocalTx
+                    ? "Local Tx Confirmed / PDA Verification Pending"
+                    : "Canonical Proof Hash Ready / Localnet Tx Pending"}
            </div>
            <div className="flex flex-wrap gap-3">
              {proof?.explorerUrl && (

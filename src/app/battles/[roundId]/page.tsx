@@ -131,6 +131,20 @@ export default async function BattleDetailPage({
   const isSettled = battle.roundStatus === "settled";
   const proofHash = anchor?.proofHash ?? null;
   const isAnchored = Boolean(anchor?.onchainSignature);
+  const verificationStatus = anchor?.verificationStatus ?? "pending";
+  const isVerified = anchor?.verified === true;
+  const verificationTone = isVerified
+    ? "#39ff14"
+    : verificationStatus === "mismatch"
+      ? "#ff1f2d"
+      : "#ffb000";
+  const verificationLabel = isVerified
+    ? "PDA Verified"
+    : verificationStatus === "mismatch"
+      ? "PDA Mismatch"
+      : verificationStatus === "missing"
+        ? "PDA Missing"
+        : "Verification Pending";
 
   return (
     <main className="min-h-screen bg-[#fcee09] text-black">
@@ -316,13 +330,14 @@ export default async function BattleDetailPage({
                 Onchain Proof Module
               </div>
               <h2 className="mt-3 font-black uppercase italic leading-none text-5xl text-[#fcee09]">
-                {proof ? "Proof Ready" : "Awaiting Proof"}
+                {proof ? verificationLabel : "Awaiting Proof"}
               </h2>
 
               <div className="mt-5 grid gap-3">
                 <ProofTile label="Round ID" value={battle.roundId} tone="#fcee09" />
                 <ProofTile label="Proof Hash" value={formatHash(proofHash)} tone="#ffb000" />
                 <ProofTile label="Hash Mode" value={proof ? "SHA-256 / CANONICAL JSON" : "Pending"} tone="#00eaff" />
+                <ProofTile label="Verify" value={verificationLabel} tone={verificationTone} />
                 <ProofTile label="Network" value={(anchor?.network ?? "localnet").toUpperCase()} tone="#39ff14" />
                 <ProofTile
                   label="Local Tx"
@@ -345,6 +360,12 @@ export default async function BattleDetailPage({
                   tone="#ffffff"
                 />
               </div>
+
+              {anchor?.verificationError ? (
+                <div className="mt-4 border-[3px] border-[#ff1f2d] bg-[#ff1f2d] p-3 font-mono text-[9px] font-black uppercase tracking-[0.18em] text-black">
+                  {anchor.verificationError}
+                </div>
+              ) : null}
 
               <div className="mt-5 grid gap-3">
                 {anchor?.explorerUrl ? (

@@ -1,5 +1,71 @@
 # PLANS.md
 
+## Immediate Plan: Onchain Proof Verification Polish
+
+### Problem
+
+The demo can currently settle a battle and store a localnet transaction
+signature, but the product surface still treats "has a signature" as the main
+proof signal. For AgentDuel, public proof should mean the app can read the
+Solana proof PDA back and verify that its compact account data matches the
+persisted battle proof.
+
+### Constraints
+
+- Keep settlement and reputation computation in the backend.
+- Keep the Pinocchio program as a compact proof anchor, not a full arena state
+  machine.
+- Do not introduce wallet UX or mainnet behavior in this pass.
+- Keep localnet failure states visible instead of hiding them behind a generic
+  pending label.
+
+### Product Layer Impact
+
+This improves the public proof layer:
+
+- the proof panel can say verified, pending, or mismatch
+- spectators can inspect the PDA and signature with clearer trust language
+- "onchain" becomes a verifiable anchor, not only a badge in the UI
+
+### Technical Architecture
+
+- Add a TypeScript decoder for the fixed Pinocchio `BattleProofAnchor` account
+  layout.
+- Read the proof PDA from localnet when rendering battle proof state.
+- Validate account owner, expected PDA, discriminator/version, proof hash,
+  proof version, round id, winner identity, and winning side.
+- Surface verification status through the existing proof API and UI panels.
+- Add a small Pinocchio guard that rejects calls routed to the wrong program id.
+
+### Affected Files
+
+- `/Users/irin/agent-duel/PLANS.md`
+- `/Users/irin/agent-duel/onchain/clients/arena/constants.ts`
+- `/Users/irin/agent-duel/onchain/clients/arena/decode-battle-proof-anchor.ts`
+- `/Users/irin/agent-duel/onchain/clients/arena/index.ts`
+- `/Users/irin/agent-duel/onchain/clients/arena/types.ts`
+- `/Users/irin/agent-duel/onchain/programs/arena/src/lib.rs`
+- `/Users/irin/agent-duel/src/lib/server/battles/get-battle-anchor.ts`
+- `/Users/irin/agent-duel/src/app/round/page.tsx`
+- `/Users/irin/agent-duel/src/components/round/SettlementPanel.tsx`
+- `/Users/irin/agent-duel/src/app/battles/[roundId]/page.tsx`
+
+### Implementation Order
+
+1. Add account layout constants and a decoder matching the Rust account layout.
+2. Add RPC read-back verification to `getBattleAnchor()`.
+3. Update API/UI proof types to show verification status.
+4. Add the Pinocchio program id guard.
+5. Run TypeScript lint/build and Rust compile checks where available.
+
+### Risks / Edge Cases
+
+- Localnet may be offline; verification should become `pending`, not fail the
+  battle page.
+- A stale database signature may point to a missing PDA; show `missing`.
+- A PDA can exist but fail hash or owner checks; show `mismatch`.
+- Old records without `onchainProofAddress` should remain readable.
+
 ## Immediate Plan: Pinocchio Battle Proof Anchor
 
 ### Goal
