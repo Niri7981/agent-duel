@@ -145,11 +145,16 @@ model Settlement {
 }
 
 model BattleProofRecord {
-  id           String   @id @default(cuid())
-  roundId      String   @unique
-  proofVersion Int
-  payload      String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  round        Round    @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  id                  String    @id @default(cuid())
+  roundId             String    @unique
+  proofVersion        Int
+  proofHash           String
+  proofHashEncoding   String
+  payload             String
+  onchainProofAddress String?
+  onchainSignature    String?
+  anchoredAt          DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  round               Round     @relation(fields: [roundId], references: [id], onDelete: Cascade)
 }

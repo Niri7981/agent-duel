@@ -1,5 +1,5 @@
-import type { AgentProfile } from "@/generated/prisma/client";
-
+import { buildBattleReputationEffects } from "@/lib/server/reputation/build-reputation-effects";
+import type { ReputationProfileSnapshot } from "@/lib/server/reputation/types";
 import type { PersistedRoundRecord } from "@/lib/server/rounds/get-latest-round";
 
 import type {
@@ -15,18 +15,6 @@ type SettlementComputationSnapshot = {
   winnerName: string;
   winningSide: "yes" | "no" | null;
 };
-
-type ProfileSnapshot = Pick<
-  AgentProfile,
-  | "identityKey"
-  | "name"
-  | "currentRank"
-  | "previousRank"
-  | "totalWins"
-  | "totalLosses"
-  | "currentStreak"
-  | "bestStreak"
->;
 
 function normalizeOutcome(outcome: string | null | undefined): BattleOutcome {
   if (outcome === "yes" || outcome === "no") {
@@ -55,58 +43,21 @@ function summarizeReason(reason: string | null | undefined) {
 }
 
 // 这里在干嘛：
-// 把 settlement 前后的 agent profile 快照，翻译成 proof payload 里的 reputation effect。
-// 为什么这么写：
-// 链上或外部 proof 层真正关心的，不只是“谁赢了”，
-// 还包括“这场 battle 怎么改变了身份状态”。
-// 所以这里把 rank、record、streak 的 before/after 明确固化下来。
-// 最后返回什么：
-// 返回一条 battle proof 里的 reputation effect 记录。
-function buildReputationEffect(params: {
-  after: ProfileSnapshot;
-  before: ProfileSnapshot;
-  result: "win" | "loss" | "draw";
-}) {
-  return {
-    bestStreakAfter: params.after.bestStreak,
-    bestStreakBefore: params.before.bestStreak,
-    identityKey: params.after.identityKey,
-    lossesAfter: params.after.totalLosses,
-    lossesBefore: params.before.totalLosses,
-    name: params.after.name,
-    rankAfter: params.after.currentRank,
-    rankBefore: params.before.currentRank,
-    rankDelta: params.before.currentRank - params.after.currentRank,
-    result: params.result,
-    streakAfter: params.after.currentStreak,
-    streakBefore: params.before.currentStreak,
-    winsAfter: params.after.totalWins,
-    winsBefore: params.before.totalWins,
-  };
-}
-
-// 这里在干嘛：
 // 把一场已经结算完成的 round，固化成一份 BattleProofPayload。
 // 为什么这么写：
 // battle history 适合给页面看，但 proof payload 需要更稳定、更明确，
 // 方便以后上链、签名或外部校验。
-// 这里会把事件快照、参赛者快照、结算结果和 reputation effect 全部固化下来。
+// 这里会把事件快照、参赛者快照、结算结果和 reputation effect 全部固化下来；
+// reputation effect 的计算交给 reputation 层，避免 proof 层重复实现声誉规则。
 // 最后返回什么：
 // 返回一份 BattleProofPayload。
 export function buildBattleProofPayload(params: {
-  afterProfiles: ProfileSnapshot[];
-  beforeProfiles: ProfileSnapshot[];
+  afterProfiles: ReputationProfileSnapshot[];
+  beforeProfiles: ReputationProfileSnapshot[];
   round: PersistedRoundRecord;
   settlement: SettlementComputationSnapshot;
   settledAt: Date;
 }): BattleProofPayload {
-  const beforeProfiles = new Map(
-    params.beforeProfiles.map((profile) => [profile.identityKey, profile]),
-  );
-  const afterProfiles = new Map(
-    params.afterProfiles.map((profile) => [profile.identityKey, profile]),
-  );
-
   const participants = params.round.agents.map((agent) => {
     const action = params.round.actions.find(
       (entry) => entry.roundAgent.id === agent.id,
@@ -131,28 +82,6 @@ export function buildBattleProofPayload(params: {
     };
   });
 
-  const reputationEffects = params.round.agents.map((agent) => {
-    const before = beforeProfiles.get(agent.agentKey);
-    const after = afterProfiles.get(agent.agentKey);
-
-    if (!before || !after) {
-      throw new Error(
-        `Missing profile snapshot while building proof payload for ${agent.agentKey}.`,
-      );
-    }
-
-    return buildReputationEffect({
-      after,
-      before,
-      result:
-        params.settlement.winnerAgentKey == null
-          ? "draw"
-          : params.settlement.winnerAgentKey === agent.agentKey
-            ? "win"
-            : "loss",
-    });
-  });
-
   return {
     createdAt: params.round.createdAt.toISOString(),
     eventId: params.round.event?.id ?? null,
@@ -163,7 +92,12 @@ export function buildBattleProofPayload(params: {
     pnlUsd: params.settlement.pnlUsd,
     proofVersion: 1,
     question: params.round.event?.question ?? "Pending duel event",
-    reputationEffects,
+    reputationEffects: buildBattleReputationEffects({
+      afterProfiles: params.afterProfiles,
+      beforeProfiles: params.beforeProfiles,
+      participantIdentityKeys: params.round.agents.map((agent) => agent.agentKey),
+      winnerIdentityKey: params.settlement.winnerAgentKey,
+    }),
     resolutionSource: params.round.event?.resolutionSource ?? "Pending source",
     roundId: params.round.id,
     settledAt: params.settledAt.toISOString(),

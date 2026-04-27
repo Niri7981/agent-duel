@@ -1,7 +1,11 @@
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
+import {
+  BATTLE_PROOF_HASH_ENCODING,
+  buildBattleProofHash,
+} from "@/lib/server/battles/build-battle-proof-hash";
 import { buildBattleProofPayload } from "@/lib/server/battles/build-battle-proof-payload";
-import { recomputeLeaderboardRanks } from "@/lib/server/leaderboard/recompute-ranks";
+import { applyBattleReputationUpdate } from "@/lib/server/reputation/apply-battle-reputation-update";
 
 import type { PersistedRoundRecord } from "./get-latest-round";
 import { resolveDemoMarket } from "./demo-market";
@@ -45,100 +49,6 @@ function buildInitialBalances(round: PersistedRoundRecord) {
   return new Map(
     round.agents.map((agent) => [agent.agentKey, agent.startingBalance]),
   );
-}
-
-// 这里在干嘛：
-// 把 round 里的参赛者，映射回全局 AgentProfile。
-// 为什么这么写：
-// settlement 只能告诉我们 round 里谁赢了，
-// 但 reputation 更新要改的是全局 AgentProfile，所以这里要先把两边对应起来。
-// 最后返回什么：
-// 返回一个数组，里面每项都包含 round 内参赛快照和对应的全局 profile。
-async function findAgentProfilesForRound(
-  tx: Prisma.TransactionClient,
-  round: PersistedRoundRecord,
-) {
-  const agentKeys = [...new Set(round.agents.map((agent) => agent.agentKey))];
-
-  const profiles = await tx.agentProfile.findMany({
-    where: {
-      identityKey: { in: agentKeys },
-    },
-  });
-
-  return round.agents.map((agent) => {
-    const profile = profiles.find(
-      (profile) => profile.identityKey === agent.agentKey,
-    );
-
-    if (profile) {
-      return {
-        agent,
-        profile,
-      };
-    }
-
-    throw new Error(`No agent profile found for round agent ${agent.agentKey}.`);
-  });
-}
-
-function snapshotProfileState(
-  profile: Awaited<ReturnType<typeof prisma.agentProfile.findFirst>> extends infer TResult
-    ? NonNullable<TResult>
-    : never,
-) {
-  return {
-    bestStreak: profile.bestStreak,
-    currentRank: profile.currentRank,
-    currentStreak: profile.currentStreak,
-    identityKey: profile.identityKey,
-    name: profile.name,
-    previousRank: profile.previousRank,
-    totalLosses: profile.totalLosses,
-    totalWins: profile.totalWins,
-  };
-}
-
-// 这里在干嘛：
-// 根据这场 battle 的赢家，把全局 agent reputation 回写到 AgentProfile。
-// 为什么这么写：
-// AgentDuel 的核心不是“round 结了”，而是“结算结果改变了公开身份”。
-// 所以 winner / loser 的 wins、losses、streak 必须在这里一起更新，
-// 然后立刻触发一次 leaderboard 重排。
-// draw 的情况单独处理，避免错误地给双方都记 loss。
-// 最后返回什么：
-// 这个函数本身不返回业务数据；它的作用是完成数据库里的 reputation 写回。
-async function applyAgentReputationUpdate(
-  tx: Prisma.TransactionClient,
-  profileMappings: Awaited<ReturnType<typeof findAgentProfilesForRound>>,
-  winnerAgentKey: string | null,
-) {
-  for (const { agent, profile } of profileMappings) {
-    const isWinner = winnerAgentKey !== null && agent.agentKey === winnerAgentKey;
-    const isDraw = winnerAgentKey === null;
-    const nextWins = profile.totalWins + (isWinner ? 1 : 0);
-    const nextLosses = profile.totalLosses + (!isWinner && !isDraw ? 1 : 0);
-    const nextStreak = isWinner
-      ? profile.currentStreak + 1
-      : isDraw
-        ? profile.currentStreak
-        : 0;
-    const nextBestStreak = Math.max(profile.bestStreak, nextStreak);
-
-    await tx.agentProfile.update({
-      data: {
-        bestStreak: nextBestStreak,
-        currentStreak: nextStreak,
-        totalLosses: nextLosses,
-        totalWins: nextWins,
-      },
-      where: {
-        id: profile.id,
-      },
-    });
-  }
-
-  await recomputeLeaderboardRanks(tx);
 }
 
 // 这里在干嘛：
@@ -234,11 +144,6 @@ export async function settleRound(
       startPrice: targetRound.event.startPrice,
     });
     const settlement = computeSettlement(targetRound, marketResolution.outcome);
-    const profileMappings = await findAgentProfilesForRound(tx, targetRound);
-    const beforeProfiles = profileMappings.map(({ profile }) =>
-      snapshotProfileState(profile),
-    );
-
     await tx.round.update({
       data: {
         status: "settled",
@@ -302,21 +207,13 @@ export async function settleRound(
       });
     }
 
-    await applyAgentReputationUpdate(
+    const { afterProfiles, beforeProfiles } = await applyBattleReputationUpdate(
       tx,
-      profileMappings,
-      settlement.winnerAgentKey,
+      {
+        round: targetRound,
+        winnerIdentityKey: settlement.winnerAgentKey,
+      },
     );
-
-    const afterProfiles = (
-      await tx.agentProfile.findMany({
-        where: {
-          identityKey: {
-            in: targetRound.agents.map((agent) => agent.agentKey),
-          },
-        },
-      })
-    ).map((profile) => snapshotProfileState(profile));
 
     const proofPayload = buildBattleProofPayload({
       afterProfiles,
@@ -325,15 +222,20 @@ export async function settleRound(
       settledAt,
       settlement,
     });
+    const proofHash = buildBattleProofHash(proofPayload);
 
     await tx.battleProofRecord.upsert({
       create: {
         payload: JSON.stringify(proofPayload),
+        proofHash,
+        proofHashEncoding: BATTLE_PROOF_HASH_ENCODING,
         proofVersion: proofPayload.proofVersion,
         roundId: targetRound.id,
       },
       update: {
         payload: JSON.stringify(proofPayload),
+        proofHash,
+        proofHashEncoding: BATTLE_PROOF_HASH_ENCODING,
         proofVersion: proofPayload.proofVersion,
       },
       where: {
