@@ -1,0 +1,26 @@
+import { PublicKey } from "@solana/web3.js";
+
+export const ARENA_PROGRAM_ID = new PublicKey(
+  "9jBdE1NzzHJ8C8YiQihWZEmqJck4zfA2TS9kK3nAyD2B",
+);
+
+export const BATTLE_PROOF_SEED_PREFIX = "battle_proof";
+
+export const RECORD_BATTLE_PROOF_DISCRIMINATOR = 0;
+
+export const ROUND_ID_SEED_LENGTH = 32;
+export const ROUND_ID_MAX_LENGTH = 64;
+export const PROOF_HASH_LENGTH = 32;
+export const IDENTITY_KEY_MAX_LENGTH = 64;
+
+export const RECORD_BATTLE_PROOF_DATA_LENGTH =
+  1 +
+  ROUND_ID_SEED_LENGTH +
+  1 +
+  ROUND_ID_MAX_LENGTH +
+  PROOF_HASH_LENGTH +
+  1 +
+  IDENTITY_KEY_MAX_LENGTH +
+  1 +
+  8 +
+  2;
