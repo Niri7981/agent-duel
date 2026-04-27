@@ -1,5 +1,409 @@
 # PLANS.md
 
+## Immediate Plan: Pinocchio Battle Proof Anchor
+
+### Goal
+
+Keep the onchain arena program on a minimal Pinocchio proof-anchor path.
+
+The next implementation step is to record compact battle proof anchors on
+Solana after a battle has been settled and its `BattleProofRecord` has been
+persisted in the app database.
+
+### Minimum Viable Implementation
+
+Build one Pinocchio instruction:
+
+- `record_battle_proof`
+
+The instruction records only the compact public proof anchor:
+
+- `round_id`
+- `proof_hash`
+- `winner_identity_key`
+- `winning_side`
+- `settled_at`
+- `proof_version`
+- `authority`
+
+The full `BattleProofPayload` remains in the app database. The onchain account
+stores a durable commitment to that payload and the public winner identity.
+
+Do not move Event Pool, Agent Pool, agent runtime decisions, leaderboard
+calculation, or settlement computation into the program.
+
+### Product Layer Impact
+
+This work primarily advances:
+
+1. round / battle layer
+2. resolution / settlement proof layer
+3. leaderboard / profile / reputation trust layer
+
+It makes the statement "agent identity is earned through public battles" more
+credible without turning the contract into the source of all arena business
+logic.
+
+### Technical Layer Impact
+
+This work primarily touches:
+
+1. chain record / settlement layer
+2. future backend-to-chain integration boundary
+3. proof verification model
+
+The app backend remains responsible for building the proof payload, computing
+the payload hash, storing `BattleProofRecord`, and later storing the returned
+transaction signature / proof PDA.
+
+### Affected Files
+
+- `/Users/irin/agent-duel/PLANS.md`
+- `/Users/irin/agent-duel/onchain/programs/arena/Cargo.toml`
+- `/Users/irin/agent-duel/onchain/programs/arena/README.md`
+- `/Users/irin/agent-duel/onchain/programs/arena/src/lib.rs`
+
+### New Files
+
+- `/Users/irin/agent-duel/onchain/programs/arena/src/errors/mod.rs`
+- `/Users/irin/agent-duel/onchain/programs/arena/src/instructions/mod.rs`
+- `/Users/irin/agent-duel/onchain/programs/arena/src/instructions/record_battle_proof/accounts.rs`
+- `/Users/irin/agent-duel/onchain/programs/arena/src/instructions/record_battle_proof/data.rs`
+- `/Users/irin/agent-duel/onchain/programs/arena/src/instructions/record_battle_proof/mod.rs`
+- `/Users/irin/agent-duel/onchain/programs/arena/src/instructions/record_battle_proof/processor.rs`
+- `/Users/irin/agent-duel/onchain/programs/arena/src/state/battle_proof_anchor.rs`
+- `/Users/irin/agent-duel/onchain/programs/arena/src/state/mod.rs`
+- `/Users/irin/agent-duel/onchain/programs/arena/src/utils/bytes.rs`
+- `/Users/irin/agent-duel/onchain/programs/arena/src/utils/mod.rs`
+
+### Implementation Order
+
+1. Use Pinocchio program entrypoint routing.
+2. Define the fixed-size battle proof anchor account layout.
+3. Define the `record_battle_proof` instruction data format.
+4. Validate signer, writable proof account, PDA seeds, proof version, timestamp,
+   side enum, and compact identity bytes.
+5. Create and write the proof anchor PDA.
+6. Run a local compile check before adding heavier LiteSVM or Mollusk tests.
+
+### Risks
+
+- If the account stores full JSON, chain cost and schema migration risk grow
+  quickly.
+- If `winner_identity_key` is confused with `runtimeKey`, the onchain proof
+  will anchor implementation details instead of public identity.
+- If the program starts recomputing settlement, it will duplicate backend
+  business logic and make the MVP harder to change.
+- If proof hashing is not canonicalized in the backend integration, the chain
+  anchor will be hard to verify later.
+
+## Immediate Plan: Internal Agent Runtime Layer
+
+### Goal
+
+Make the real MVP round flow explicit:
+
+**user selects event -> user selects internal arena agents -> round starts ->
+agent runtime produces decisions -> actions are recorded**
+
+The next implementation step is to expose an internal runtime layer before any
+external agent upload or marketplace work.
+
+### Minimum Viable Implementation
+
+Keep runtime internal and curated for MVP.
+
+Add a backend runtime layer that provides:
+
+- a standard runtime decision input
+- a standard runtime decision output
+- a runtime registry keyed by `runtimeKey`
+- a round-level runner that executes selected internal agents
+
+For MVP, runtime adapters can remain rule-based and reuse the existing momentum
+and contrarian demo strategies.
+
+### Product Layer Impact
+
+This work primarily advances:
+
+1. agent pool layer
+2. round / battle layer
+3. decision output and resolution layer
+
+It makes selected public agents feel like they actually enter a round and act,
+instead of `createRound()` directly fabricating actions.
+
+### Technical Layer Impact
+
+This work primarily touches:
+
+1. backend orchestration layer
+2. agent runtime layer
+3. round creation flow
+
+### Affected Files
+
+- `/Users/irin/agent-duel/PLANS.md`
+- `/Users/irin/agent-duel/src/lib/server/rounds/create-round.ts`
+
+### New Files
+
+- `/Users/irin/agent-duel/src/lib/server/agent-runtime/types.ts`
+- `/Users/irin/agent-duel/src/lib/server/agent-runtime/registry.ts`
+- `/Users/irin/agent-duel/src/lib/server/agent-runtime/run-round-agent-runtime.ts`
+
+### Implementation Order
+
+1. Define runtime input and output types around public agent identity.
+2. Add a registry from `runtimeKey` to internal adapters.
+3. Add a round-level runtime runner that produces one decision per selected
+   agent.
+4. Replace direct action generation in `createRound()` with the runtime runner.
+5. Run lint and build.
+
+### Risks
+
+- If runtime stays embedded in `createRound()`, selected agents will not become
+  a real technical layer.
+- If external upload is added before internal runtime is clear, the product will
+  inherit sandbox, security, and abuse complexity too early.
+- If runtimeKey leaks into battle identity, battle history and reputation will
+  stop representing public agent identity.
+
+## Immediate Plan: Reputation Service Layer
+
+### Goal
+
+Separate reputation behavior from round settlement and battle proof assembly.
+
+The next implementation step is to expose:
+
+- a stable reputation snapshot type
+- a battle reputation update service
+- a reusable reputation effect builder
+- cleaner settlement orchestration that treats reputation as its own product
+  layer
+
+### Minimum Viable Implementation
+
+Keep the MVP database shape unchanged for now.
+
+`AgentProfile` remains the current reputation state store, and
+`BattleProofPayload.reputationEffects` remains the historical proof snapshot.
+
+Add a dedicated backend layer that provides:
+
+- `ReputationProfileSnapshot`
+- `ReputationEffect`
+- `applyBattleReputationUpdate()`
+- `buildBattleReputationEffects()`
+
+For MVP, do not introduce `AgentReputation` or `ReputationEvent` tables yet.
+The point of this step is to isolate reputation rules before changing schema.
+
+### Product Layer Impact
+
+This work primarily advances:
+
+1. leaderboard / profile / reputation layer
+2. resolution / settlement layer
+3. public proof layer
+
+It makes reputation a first-class product layer instead of an implementation
+detail hidden inside settlement.
+
+### Technical Layer Impact
+
+This work primarily touches:
+
+1. backend orchestration layer
+2. storage / indexing / stats layer
+3. battle proof construction
+
+### Affected Files
+
+- `/Users/irin/agent-duel/PLANS.md`
+- `/Users/irin/agent-duel/src/lib/server/rounds/settle-round.ts`
+- `/Users/irin/agent-duel/src/lib/server/battles/types.ts`
+- `/Users/irin/agent-duel/src/lib/server/battles/build-battle-proof-payload.ts`
+
+### New Files
+
+- `/Users/irin/agent-duel/src/lib/server/reputation/types.ts`
+- `/Users/irin/agent-duel/src/lib/server/reputation/apply-battle-reputation-update.ts`
+- `/Users/irin/agent-duel/src/lib/server/reputation/build-reputation-effects.ts`
+
+### Implementation Order
+
+1. Define reputation snapshot and effect types.
+2. Move battle reputation write-back out of `settle-round`.
+3. Move reputation effect construction out of battle proof assembly.
+4. Keep proof payload output stable.
+5. Run lint and build.
+
+### Risks
+
+- If reputation rules stay embedded in settlement, future rating or season logic
+  will be hard to evolve.
+- If proof effect construction is duplicated across battle and arena layers,
+  public reputation history can drift.
+- If schema is split before service boundaries are clear, the migration can add
+  complexity without product benefit.
+
+## Immediate Plan: Arena Spectator Data Surface
+
+### Goal
+
+Move the frontend from API testing screens toward a spectator-ready arena data
+surface.
+
+The next implementation step is to expose:
+
+- one arena home payload for the future main stage UI
+- one battle feed payload for public battle history
+- one `/api/arena` route that frontend experiments can consume directly
+- one `/battles` page that makes repeated public battles browsable
+
+### Minimum Viable Implementation
+
+Build a backend aggregation layer on top of the existing read services:
+
+- `getArenaHome()` composes current round, latest settled battle, leaderboard,
+  featured agents, battle feed, and reputation movement
+- `getBattleFeed()` maps battle records plus persisted proof snapshots into a
+  frontend-friendly feed item
+- `GET /api/arena` returns the arena home payload
+- `/battles` renders recent battles as a public history feed and links into
+  `/battles/[roundId]`
+
+For MVP, keep this as a read aggregation layer.
+Do not create a new database table for arena home or battle feed.
+
+### Product Layer Impact
+
+This work primarily advances:
+
+1. round / battle layer
+2. leaderboard / profile / reputation layer
+3. public proof layer
+4. frontend presentation layer readiness
+
+It creates the data contract the future high-impact arena frontend should use.
+
+### Technical Layer Impact
+
+This work primarily touches:
+
+1. backend orchestration layer
+2. API layer for frontend composition
+3. frontend presentation layer through a battle feed page
+
+### Affected Files
+
+- `/Users/irin/agent-duel/PLANS.md`
+- `/Users/irin/agent-duel/src/app/page.tsx`
+
+### New Files
+
+- `/Users/irin/agent-duel/src/lib/server/arena/get-arena-home.ts`
+- `/Users/irin/agent-duel/src/lib/server/battles/get-battle-feed.ts`
+- `/Users/irin/agent-duel/src/app/api/arena/route.ts`
+- `/Users/irin/agent-duel/src/app/battles/page.tsx`
+
+### Implementation Order
+
+1. Build the battle feed service from `BattleRecord` plus persisted proof.
+2. Build the arena home aggregation service.
+3. Expose `/api/arena`.
+4. Add `/battles` as the public battle history surface.
+5. Add light navigation from the current home page into battle history.
+
+### Risks
+
+- If future frontend work consumes many raw APIs directly, arena UI logic will
+  become hard to evolve.
+- If battle feed does not include proof status and rank movement, the feed will
+  read like generic match history instead of public agent identity history.
+- If this layer starts mutating state, it will blur the boundary between
+  spectator reads and battle orchestration.
+
+## Immediate Plan: Battle Detail And Proof Surface
+
+### Goal
+
+Turn the completed battle backend into a public proof surface that users can
+actually inspect, compare, and share.
+
+The next implementation step is to expose:
+
+- a battle detail page
+- a proof panel for reputation change
+- links from leaderboard, agent profile, and battle list surfaces into a single
+  public battle page
+
+### Minimum Viable Implementation
+
+Build the smallest frontend surface on top of the existing battle backend:
+
+- `getBattleRecord()` remains the source for the main battle detail view
+- `getBattleProof()` remains the source for the proof snapshot view
+- add a `/battles/[roundId]` page
+- render participant decisions, balances, winner, and outcome
+- render reputation effects from the persisted proof payload
+- add navigation into this page from existing identity surfaces
+
+For MVP, do not introduce a new materialized battle view model table.
+Do not re-derive proof state in the frontend.
+The page should consume the current backend shape directly.
+
+### Product Layer Impact
+
+This work primarily advances:
+
+1. round / battle layer
+2. leaderboard / profile / reputation layer
+3. public proof layer
+
+It is the shortest path from "battle data exists in APIs" to "users can see why
+an agent's identity rose or fell."
+
+### Technical Layer Impact
+
+This work primarily touches:
+
+1. frontend presentation layer
+2. backend read-service reuse
+3. API-connected page composition
+
+### Affected Files
+
+- `/Users/irin/agent-duel/PLANS.md`
+- `/Users/irin/agent-duel/src/app/leaderboard/page.tsx`
+- `/Users/irin/agent-duel/src/app/agents/[agentId]/page.tsx`
+- `/Users/irin/agent-duel/src/app/agents/page.tsx`
+
+### New Files
+
+- `/Users/irin/agent-duel/src/app/battles/[roundId]/page.tsx`
+
+### Implementation Order
+
+1. Create the battle detail page from the existing battle record service.
+2. Add a proof section sourced from persisted battle proof payload.
+3. Add navigation from leaderboard and agent surfaces into battle detail.
+4. Polish the page so rank movement, streak movement, and winner identity read
+   clearly at a glance.
+
+### Risks
+
+- If the page starts recomputing proof state from raw round data, the battle
+  detail surface can drift from the persisted proof snapshot.
+- If battle detail only shows outcome and not reputation effects, the product
+  will under-deliver on the "identity is earned publicly" thesis.
+- If navigation into battle pages is weak, the new surface will exist without
+  becoming part of the arena loop.
+
 ## Immediate Plan: Battle History And Battle Record Layer
 
 ### Goal
