@@ -1,21 +1,62 @@
 "use client";
 
-import Link from "next/link";
+import React, { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { LandingNav } from "@/components/landing/LandingNav";
+import { LandingHero } from "@/components/landing/LandingHero";
+import { EventSelectionSection } from "@/components/landing/EventSelectionSection";
+import { AgentSelectionSection } from "@/components/landing/AgentSelectionSection";
+import { BattlePreviewSection } from "@/components/landing/BattlePreviewSection";
+import { SectionTransition } from "@/components/landing/SectionTransition";
+import { MOCK_EVENTS, MOCK_AGENTS } from "@/lib/mocks/landing-demo-data";
 
 type ApiError = {
   error?: string;
 };
 
-async function createRound() {
+type AgentPoolEntry = {
+  id: string;
+  identityKey: string;
+  name: string;
+  runtimeKey: string;
+};
+
+async function readAgentPool() {
+  const response = await fetch("/api/agents?limit=12", {
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as ApiError | null;
+    throw new Error(payload?.error ?? "Failed to load agent pool.");
+  }
+
+  return (await response.json()) as AgentPoolEntry[];
+}
+
+function resolveAgentPoolId(
+  agentPool: AgentPoolEntry[],
+  landingAgent: (typeof MOCK_AGENTS)[number],
+) {
+  return agentPool.find(
+    (agent) =>
+      agent.name === landingAgent.name ||
+      agent.identityKey === `agent-${landingAgent.id}` ||
+      agent.runtimeKey === landingAgent.id,
+  )?.id;
+}
+
+async function createRound(input: { agentIds: string[]; eventId: string }) {
   const response = await fetch("/api/round", {
+    body: JSON.stringify(input),
+    headers: {
+      "Content-Type": "application/json",
+    },
     method: "POST",
   });
 
   if (!response.ok) {
     const payload = (await response.json().catch(() => null)) as ApiError | null;
-
     throw new Error(payload?.error ?? "Failed to create duel round.");
   }
 }
@@ -25,13 +66,30 @@ export default function HomePage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isCreating, startCreateTransition] = useTransition();
 
-  function handleCreateRound() {
-    setErrorMessage(null);
+  const [selectedEventId, setSelectedEventId] = useState<string>(MOCK_EVENTS[0].id);
+  const [selectedAgentId, setSelectedAgentId] = useState<string>(MOCK_AGENTS[0].id);
 
-    // 首页只负责发起创建，然后把用户送到真正的 duel 页面。
+  const selectedEvent = MOCK_EVENTS.find(e => e.id === selectedEventId) || MOCK_EVENTS[0];
+  const selectedAgent = MOCK_AGENTS.find(a => a.id === selectedAgentId) || MOCK_AGENTS[0];
+
+  function handleEnterArena() {
+    setErrorMessage(null);
     startCreateTransition(async () => {
       try {
-        await createRound();
+        const agentPool = await readAgentPool();
+        const opponentAgent =
+          MOCK_AGENTS.find((agent) => agent.id !== selectedAgent.id) ?? MOCK_AGENTS[1];
+        const selectedAgentPoolId = resolveAgentPoolId(agentPool, selectedAgent);
+        const opponentAgentPoolId = resolveAgentPoolId(agentPool, opponentAgent);
+
+        if (!selectedAgentPoolId || !opponentAgentPoolId) {
+          throw new Error("Selected arena agents are not available in the agent pool.");
+        }
+
+        await createRound({
+          agentIds: [selectedAgentPoolId, opponentAgentPoolId],
+          eventId: selectedEvent.id,
+        });
         router.push("/round");
       } catch (error) {
         setErrorMessage(
@@ -41,100 +99,79 @@ export default function HomePage() {
     });
   }
 
+  const acidWallpaperStyle = { backgroundColor: "#fcee09" };
+
   return (
-    <main className="min-h-screen bg-neutral-950 text-neutral-50">
-      <div className="mx-auto flex min-h-screen max-w-5xl flex-col justify-center gap-10 px-6 py-12">
-        <div className="space-y-4">
-          <p className="text-sm uppercase tracking-[0.24em] text-emerald-400/80">
-            AgentDuel
-          </p>
-          <h1 className="max-w-4xl text-4xl font-semibold tracking-tight sm:text-6xl">
-            Launch a real AI agent duel with one click.
-          </h1>
-          <p className="max-w-3xl text-base text-neutral-300 sm:text-lg">
-            Create a short-horizon market duel, let two agents choose a side,
-            size their bets, and settle the result through the new backend
-            lifecycle we just wired up.
-          </p>
-        </div>
+    <main
+      className="landing-black-text acid-yellow-section h-screen overflow-y-auto overflow-x-hidden snap-y snap-proximity scroll-smooth selection:bg-[#fcee09] selection:text-black"
+      style={acidWallpaperStyle}
+    >
+      <LandingNav />
+      
+      {/* Section 01: Hero */}
+      <section className="h-screen min-h-screen w-full snap-start snap-always shrink-0 overflow-hidden bg-black">
+        <LandingHero />
+      </section>
 
-        <div className="grid gap-4 md:grid-cols-3">
-          <div className="rounded-3xl border border-neutral-800 bg-neutral-900/80 p-5">
-            <p className="text-xs uppercase tracking-[0.2em] text-neutral-500">
-              Duel Format
-            </p>
-            <p className="mt-3 text-lg font-medium">Binary short-horizon market</p>
-            <p className="mt-2 text-sm text-neutral-400">
-              One question, two agents, one winner.
-            </p>
-          </div>
-          <div className="rounded-3xl border border-neutral-800 bg-neutral-900/80 p-5">
-            <p className="text-xs uppercase tracking-[0.2em] text-neutral-500">
-              Agent Runtime
-            </p>
-            <p className="mt-3 text-lg font-medium">Momentum vs Contrarian</p>
-            <p className="mt-2 text-sm text-neutral-400">
-              Each agent makes a visible autonomous decision.
-            </p>
-          </div>
-          <div className="rounded-3xl border border-neutral-800 bg-neutral-900/80 p-5">
-            <p className="text-xs uppercase tracking-[0.2em] text-neutral-500">
-              Settlement
-            </p>
-            <p className="mt-3 text-lg font-medium">Database-backed MVP flow</p>
-            <p className="mt-2 text-sm text-neutral-400">
-              Create, read, settle, and reload the same duel state.
-            </p>
-          </div>
-        </div>
+      <SectionTransition from="dark" to="yellow" label="// EVENT.MODULE loading..." />
 
-        <div className="flex flex-wrap gap-3">
-          <button
-            className="rounded-full bg-emerald-400 px-5 py-3 text-sm font-medium text-neutral-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-neutral-700 disabled:text-neutral-300"
-            disabled={isCreating}
-            onClick={handleCreateRound}
-            type="button"
-          >
-            {isCreating ? "Creating Duel..." : "Create Live Duel"}
-          </button>
-          <Link
-            href="/round"
-            className="rounded-full border border-neutral-700 px-5 py-3 text-sm font-medium text-neutral-100 transition hover:border-neutral-500"
-          >
-            Open Round Screen
-          </Link>
-          <Link
-            href="/events"
-            className="rounded-full border border-neutral-700 px-5 py-3 text-sm font-medium text-neutral-100 transition hover:border-neutral-500"
-          >
-            Open Event Pool
-          </Link>
-          <Link
-            href="/agents"
-            className="rounded-full border border-neutral-700 px-5 py-3 text-sm font-medium text-neutral-100 transition hover:border-neutral-500"
-          >
-            Open Agent Pool
-          </Link>
-          <Link
-            href="/leaderboard"
-            className="rounded-full border border-neutral-700 px-5 py-3 text-sm font-medium text-neutral-100 transition hover:border-neutral-500"
-          >
-            Open Leaderboard
-          </Link>
-          <a
-            href="/api/round"
-            className="rounded-full border border-neutral-700 px-5 py-3 text-sm font-medium text-neutral-100 transition hover:border-neutral-500"
-          >
-            Round API
-          </a>
+      {/* Section 02: Event Selection */}
+      <section
+        className="acid-yellow-section relative min-h-screen w-full snap-start snap-always shrink-0 overflow-hidden"
+        style={acidWallpaperStyle}
+      >
+        <div className="acid-yellow-gradient absolute inset-0" />
+        <div className="acid-grid-overlay absolute inset-0 opacity-25" />
+        <div className="relative z-10">
+        <EventSelectionSection 
+          selectedEventId={selectedEventId} 
+          onSelectEvent={setSelectedEventId} 
+        />
         </div>
+      </section>
 
-        {errorMessage ? (
-          <div className="rounded-3xl border border-rose-500/30 bg-rose-500/10 px-5 py-4 text-sm text-rose-200">
-            {errorMessage}
-          </div>
-        ) : null}
-      </div>
+      <SectionTransition from="yellow" to="yellow" label="// AGENT.SELECTOR online..." />
+
+      {/* Section 03: Agent Selection */}
+      <section
+        className="acid-yellow-section relative min-h-screen w-full snap-start snap-always shrink-0 overflow-hidden"
+        style={acidWallpaperStyle}
+      >
+        <div className="acid-yellow-gradient absolute inset-0" />
+        <div className="acid-grid-overlay absolute inset-0 opacity-25" />
+        <div className="relative z-10">
+        <AgentSelectionSection 
+          selectedAgentId={selectedAgentId} 
+          onSelectAgent={setSelectedAgentId} 
+        />
+        </div>
+      </section>
+
+      <SectionTransition from="yellow" to="yellow" label="// BATTLE.PREVIEW armed..." labelOnly />
+
+      {/* Section 04: Battle Preview */}
+      <section
+        className="acid-yellow-section relative min-h-screen w-full snap-start snap-always shrink-0 overflow-hidden"
+        style={acidWallpaperStyle}
+      >
+        <div className="acid-yellow-gradient absolute inset-0" />
+        <div className="acid-grid-overlay absolute inset-0 opacity-25" />
+        <div className="relative z-10">
+        <BattlePreviewSection 
+          selectedEvent={selectedEvent}
+          selectedAgent={selectedAgent}
+          onEnterArena={handleEnterArena}
+          isCreating={isCreating}
+        />
+        </div>
+      </section>
+
+      {/* Global Error Message Toast-like */}
+      {errorMessage && (
+        <div className="fixed bottom-10 right-10 z-50 border-[3px] border-black bg-[#fcee09] p-4 text-xs font-black uppercase tracking-widest text-black shadow-[8px_8px_0_#000] animate-in fade-in slide-in-from-bottom-5">
+          {errorMessage}
+        </div>
+      )}
     </main>
   );
 }

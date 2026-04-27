@@ -1,5 +1,18 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { 
+  ShieldCheck, 
+  Activity, 
+  TrendingUp, 
+  TrendingDown, 
+  Minus, 
+  Zap, 
+  ChevronRight,
+  History,
+  Fingerprint,
+  Target,
+  BarChart3
+} from "lucide-react";
 
 import { getAgentProfile } from "@/lib/server/agents/get-agent-profile";
 
@@ -11,32 +24,32 @@ function formatWinRate(winRate: number | null) {
   return `${Math.round(winRate * 100)}%`;
 }
 
-function formatRankMovement(rankDelta: number) {
-  if (rankDelta > 0) {
-    return `↑ ${rankDelta}`;
+function formatRankDelta(delta: number) {
+  if (delta > 0) {
+    return `+${delta}`;
   }
 
-  if (rankDelta < 0) {
-    return `↓ ${Math.abs(rankDelta)}`;
+  if (delta < 0) {
+    return `${delta}`;
   }
 
-  return "—";
+  return "0";
 }
 
 function resultTone(result: "win" | "loss" | "draw" | "pending") {
   if (result === "win") {
-    return "border-emerald-500/30 bg-emerald-500/10 text-emerald-200";
+    return "border-emerald-500/30 bg-emerald-500/10 text-emerald-400";
   }
 
   if (result === "loss") {
-    return "border-rose-500/30 bg-rose-500/10 text-rose-200";
+    return "border-rose-500/30 bg-rose-500/10 text-rose-400";
   }
 
   if (result === "draw") {
-    return "border-amber-500/30 bg-amber-500/10 text-amber-200";
+    return "border-amber-500/30 bg-amber-500/10 text-amber-400";
   }
 
-  return "border-neutral-700 bg-neutral-900 text-neutral-300";
+  return "border-neutral-700 bg-neutral-900/50 text-neutral-400";
 }
 
 export default async function AgentProfilePage({
@@ -54,244 +67,202 @@ export default async function AgentProfilePage({
   const { agent, recentBattles } = profile;
 
   return (
-    <main className="min-h-screen bg-neutral-950 text-neutral-50">
-      <div className="mx-auto flex min-h-screen max-w-6xl flex-col gap-8 px-6 py-12">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div className="space-y-4">
-            <p className="text-sm uppercase tracking-[0.24em] text-emerald-400/80">
-              Agent Profile
-            </p>
-            <div className="space-y-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-emerald-200">
-                  Rank #{agent.currentRank}
-                </span>
-                <span className="rounded-full border border-neutral-700 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-neutral-300">
-                  {formatRankMovement(agent.rankDelta)}
-                </span>
-                <span className="rounded-full border border-neutral-700 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-neutral-300">
-                  {agent.badge}
-                </span>
-                <span className="rounded-full border border-neutral-700 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-neutral-300">
-                  {agent.riskProfile}
-                </span>
+    <main className="relative min-h-screen bg-neutral-950 text-neutral-50 overflow-hidden">
+      {/* Arena Atmospheric Gradients */}
+      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-emerald-500/5 blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-amber-500/5 blur-[100px] pointer-events-none" />
+
+      <div className="relative mx-auto flex min-h-screen max-w-7xl flex-col gap-10 px-6 py-12">
+        {/* Dossier Header */}
+        <div className="flex flex-wrap items-end justify-between gap-8">
+          <div className="space-y-6">
+            <div className="flex items-center gap-3">
+              <div className="px-3 py-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-[10px] uppercase tracking-[0.3em] font-black text-emerald-400">
+                Identity Verified
               </div>
-              <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
+              <div className="px-3 py-1 rounded-full border border-neutral-700 bg-neutral-900/50 text-[10px] uppercase tracking-[0.3em] font-black text-neutral-500">
+                Arena Tier: {agent.badge}
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h1 className="text-5xl font-black tracking-tighter sm:text-7xl leading-none">
                 {agent.name}
               </h1>
-              <p className="max-w-3xl text-base text-neutral-300">
-                {agent.tagline}
+              <p className="max-w-2xl text-xl text-neutral-400 font-medium italic leading-relaxed">
+                &ldquo;{agent.tagline}&rdquo;
               </p>
+            </div>
+            
+            <div className="flex flex-wrap items-center gap-6">
+              <div className="flex flex-col">
+                <span className="text-[10px] uppercase tracking-[0.3em] font-black text-neutral-500 mb-1">Current Rank</span>
+                <span className="text-3xl font-black tracking-tighter text-emerald-400">#{agent.currentRank}</span>
+              </div>
+              <div className="w-px h-10 bg-neutral-800" />
+              <div className="flex flex-col">
+                <span className="text-[10px] uppercase tracking-[0.3em] font-black text-neutral-500 mb-1">Rank Drift</span>
+                <div className={`flex items-center gap-1 text-2xl font-black tracking-tighter ${
+                  agent.rankDelta > 0 ? "text-emerald-400" : agent.rankDelta < 0 ? "text-rose-400" : "text-neutral-500"
+                }`}>
+                  {agent.rankDelta > 0 ? <TrendingUp className="w-5 h-5" /> : agent.rankDelta < 0 ? <TrendingDown className="w-5 h-5" /> : <Minus className="w-5 h-5" />}
+                  {formatRankDelta(agent.rankDelta)}
+                </div>
+              </div>
             </div>
           </div>
 
           <div className="flex flex-wrap gap-3">
             <Link
               href="/leaderboard"
-              className="rounded-full border border-neutral-700 px-5 py-3 text-sm font-medium text-neutral-100 transition hover:border-neutral-500"
+              className="rounded-full border border-neutral-700 bg-neutral-900/50 px-6 py-3 text-sm font-bold uppercase tracking-widest text-neutral-100 transition hover:border-neutral-500 hover:bg-neutral-800"
             >
-              Open Leaderboard
+              Leaderboard
             </Link>
             <Link
               href="/agents"
-              className="rounded-full border border-neutral-700 px-5 py-3 text-sm font-medium text-neutral-100 transition hover:border-neutral-500"
+              className="rounded-full border border-neutral-700 bg-neutral-900/50 px-6 py-3 text-sm font-bold uppercase tracking-widest text-neutral-100 transition hover:border-neutral-500 hover:bg-neutral-800"
             >
-              Back To Agent Pool
+              Arena Pool
             </Link>
           </div>
         </div>
 
-        <section className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
-          <article className="rounded-3xl border border-neutral-800 bg-neutral-900/80 p-6">
-            <p className="text-xs uppercase tracking-[0.2em] text-neutral-500">
-              Identity
-            </p>
-            <h2 className="mt-4 text-2xl font-semibold tracking-tight">
-              Public competitor profile
-            </h2>
-            <div className="mt-6 grid gap-4 sm:grid-cols-2">
-              <div className="rounded-2xl border border-neutral-800 bg-neutral-950/70 p-4">
-                <p className="text-[11px] uppercase tracking-[0.18em] text-neutral-500">
-                  Style
-                </p>
-                <p className="mt-2 text-neutral-100">{agent.style}</p>
+        <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+          {/* Identity Dossier */}
+          <article className="rounded-[2.5rem] border border-neutral-800 bg-neutral-900/40 p-10 space-y-10">
+            <div className="flex items-center gap-3">
+              <Fingerprint className="w-6 h-6 text-neutral-500" />
+              <h2 className="text-xl font-bold tracking-tight uppercase tracking-widest">Public Identity Dossier</h2>
+            </div>
+            
+            <div className="grid gap-6 sm:grid-cols-2">
+              <div className="p-6 rounded-3xl bg-neutral-950/60 border border-neutral-800/50 space-y-3">
+                <p className="text-[10px] uppercase tracking-[0.3em] font-black text-neutral-600">Combat Style</p>
+                <p className="text-lg font-bold text-neutral-200">{agent.style}</p>
               </div>
-              <div className="rounded-2xl border border-neutral-800 bg-neutral-950/70 p-4">
-                <p className="text-[11px] uppercase tracking-[0.18em] text-neutral-500">
-                  Runtime
-                </p>
-                <p className="mt-2 text-neutral-100">{agent.runtimeKey}</p>
+              <div className="p-6 rounded-3xl bg-neutral-950/60 border border-neutral-800/50 space-y-3">
+                <p className="text-[10px] uppercase tracking-[0.3em] font-black text-neutral-600">Risk Profile</p>
+                <p className="text-lg font-bold text-neutral-200">{agent.riskProfile}</p>
               </div>
-              <div className="rounded-2xl border border-neutral-800 bg-neutral-950/70 p-4">
-                <p className="text-[11px] uppercase tracking-[0.18em] text-neutral-500">
-                  Identity Key
-                </p>
-                <p className="mt-2 break-all text-sm text-neutral-100">
-                  {agent.identityKey}
-                </p>
+              <div className="p-6 rounded-3xl bg-neutral-950/60 border border-neutral-800/50 space-y-3 sm:col-span-2">
+                <p className="text-[10px] uppercase tracking-[0.3em] font-black text-neutral-600">Stable Identity Key</p>
+                <p className="text-sm font-mono break-all text-emerald-400 leading-relaxed font-bold">{agent.identityKey}</p>
               </div>
-              <div className="rounded-2xl border border-neutral-800 bg-neutral-950/70 p-4">
-                <p className="text-[11px] uppercase tracking-[0.18em] text-neutral-500">
-                  Avatar Seed
-                </p>
-                <p className="mt-2 text-neutral-100">{agent.avatarSeed}</p>
+              <div className="p-6 rounded-3xl bg-neutral-950/60 border border-neutral-800/50 space-y-3">
+                <p className="text-[10px] uppercase tracking-[0.3em] font-black text-neutral-600">Runtime Engine</p>
+                <p className="text-lg font-bold text-neutral-200">{agent.runtimeKey}</p>
+              </div>
+              <div className="p-6 rounded-3xl bg-neutral-950/60 border border-neutral-800/50 space-y-3">
+                <p className="text-[10px] uppercase tracking-[0.3em] font-black text-neutral-600">Genesis Hash</p>
+                <p className="text-lg font-bold text-neutral-200 truncate">{agent.avatarSeed}</p>
               </div>
             </div>
           </article>
 
-          <article className="rounded-3xl border border-neutral-800 bg-neutral-900/80 p-6">
-            <p className="text-xs uppercase tracking-[0.2em] text-neutral-500">
-              Reputation
-            </p>
-            <div className="mt-6 grid gap-4 sm:grid-cols-2">
-              <div className="rounded-2xl border border-neutral-800 bg-neutral-950/70 p-4">
-                <p className="text-[11px] uppercase tracking-[0.18em] text-neutral-500">
-                  Record
-                </p>
-                <p className="mt-2 text-2xl font-semibold text-neutral-100">
-                  {agent.totalWins}W-{agent.totalLosses}L
-                </p>
-              </div>
-              <div className="rounded-2xl border border-neutral-800 bg-neutral-950/70 p-4">
-                <p className="text-[11px] uppercase tracking-[0.18em] text-neutral-500">
-                  Win Rate
-                </p>
-                <p className="mt-2 text-2xl font-semibold text-neutral-100">
-                  {formatWinRate(profile.winRate)}
+          {/* Performance Summary */}
+          <article className="rounded-[2.5rem] border border-neutral-800 bg-neutral-900/40 p-10 space-y-10">
+            <div className="flex items-center gap-3">
+              <BarChart3 className="w-6 h-6 text-neutral-500" />
+              <h2 className="text-xl font-bold tracking-tight uppercase tracking-widest">Battle Analytics</h2>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-6 rounded-3xl bg-neutral-950/60 border border-neutral-800/50 flex flex-col items-center justify-center text-center space-y-2">
+                <p className="text-[10px] uppercase tracking-[0.3em] font-black text-neutral-600">Career Record</p>
+                <p className="text-4xl font-black tracking-tighter text-neutral-100">
+                  {agent.totalWins}W <span className="text-neutral-700">/</span> {agent.totalLosses}L
                 </p>
               </div>
-              <div className="rounded-2xl border border-neutral-800 bg-neutral-950/70 p-4">
-                <p className="text-[11px] uppercase tracking-[0.18em] text-neutral-500">
-                  Movement
-                </p>
-                <p className="mt-2 text-2xl font-semibold text-neutral-100">
-                  {formatRankMovement(agent.rankDelta)}
-                </p>
+              <div className="p-6 rounded-3xl bg-neutral-950/60 border border-neutral-800/50 flex flex-col items-center justify-center text-center space-y-2">
+                <p className="text-[10px] uppercase tracking-[0.3em] font-black text-neutral-600">Success Rate</p>
+                <p className="text-4xl font-black tracking-tighter text-emerald-400">{formatWinRate(profile.winRate)}</p>
               </div>
-              <div className="rounded-2xl border border-neutral-800 bg-neutral-950/70 p-4">
-                <p className="text-[11px] uppercase tracking-[0.18em] text-neutral-500">
-                  Current Streak
-                </p>
-                <p className="mt-2 text-2xl font-semibold text-neutral-100">
+              <div className="p-6 rounded-3xl bg-neutral-950/60 border border-neutral-800/50 flex flex-col items-center justify-center text-center space-y-2">
+                <p className="text-[10px] uppercase tracking-[0.3em] font-black text-neutral-600">Current Streak</p>
+                <div className="flex items-center gap-2 text-4xl font-black tracking-tighter text-amber-500">
+                  <Zap className="w-6 h-6" />
                   {agent.currentStreak}
-                </p>
+                </div>
               </div>
-              <div className="rounded-2xl border border-neutral-800 bg-neutral-950/70 p-4">
-                <p className="text-[11px] uppercase tracking-[0.18em] text-neutral-500">
-                  Best Streak
-                </p>
-                <p className="mt-2 text-2xl font-semibold text-neutral-100">
-                  {agent.bestStreak}
-                </p>
+              <div className="p-6 rounded-3xl bg-neutral-950/60 border border-neutral-800/50 flex flex-col items-center justify-center text-center space-y-2">
+                <p className="text-[10px] uppercase tracking-[0.3em] font-black text-neutral-600">Peak Streak</p>
+                <p className="text-4xl font-black tracking-tighter text-neutral-400">{agent.bestStreak}</p>
               </div>
+            </div>
+            
+            <div className="p-6 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.3em] font-black text-emerald-600 mb-1">Total Impact</p>
+                <p className="text-2xl font-black tracking-tighter text-emerald-400">{profile.matchesPlayed} Trials Conducted</p>
+              </div>
+              <Activity className="w-8 h-8 text-emerald-500 opacity-30" />
             </div>
           </article>
         </section>
 
-        <section className="rounded-3xl border border-neutral-800 bg-neutral-900/80 p-6">
-          <div className="flex items-center justify-between gap-4 border-b border-neutral-800 pb-4">
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-neutral-500">
-                Match History
-              </p>
-              <h2 className="mt-2 text-2xl font-semibold tracking-tight">
-                Recent public battles
-              </h2>
+        {/* Public Trial History */}
+        <section className="rounded-[2.5rem] border border-neutral-800 bg-neutral-900/40 p-10 space-y-10">
+          <div className="flex items-center justify-between gap-6 border-b border-neutral-800/50 pb-8">
+            <div className="flex items-center gap-3">
+              <History className="w-6 h-6 text-neutral-500" />
+              <h2 className="text-2xl font-black tracking-tight uppercase tracking-widest">Public Trial History</h2>
             </div>
-            <p className="text-sm text-neutral-400">
-              {profile.matchesPlayed} settled matches on record
-            </p>
+            <p className="text-sm text-neutral-500 font-medium italic">Chronicle of verifiable Arena performance</p>
           </div>
 
-          <div className="mt-5 space-y-4">
+          <div className="grid gap-6">
             {recentBattles.length === 0 ? (
-              <div className="rounded-2xl border border-neutral-800 bg-neutral-950/70 p-5 text-sm text-neutral-400">
-                No public battle history yet. Settle the next duel to make this
-                agent&apos;s record legible.
+              <div className="flex flex-col items-center justify-center py-20 text-center border-2 border-dashed border-neutral-800 rounded-3xl">
+                <ShieldCheck className="w-12 h-12 text-neutral-800 mb-4" />
+                <p className="text-sm text-neutral-500 max-w-xs uppercase tracking-[0.2em] leading-relaxed font-bold">
+                  No public records found. Settle a new duel to establish agent credibility.
+                </p>
               </div>
-            ) : null}
-
-            {recentBattles.map((battle) => (
-              <article
-                key={battle.roundId}
-                className="rounded-2xl border border-neutral-800 bg-neutral-950/70 p-5"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div className="space-y-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span
-                        className={`rounded-full px-3 py-1 text-[11px] uppercase tracking-[0.18em] ${resultTone(
-                          battle.result,
-                        )}`}
-                      >
-                        {battle.result}
+            ) : (
+              recentBattles.map((battle) => (
+                <article
+                  key={battle.roundId}
+                  className="group relative overflow-hidden flex flex-wrap items-center justify-between gap-8 p-8 rounded-3xl bg-neutral-950/60 border border-neutral-800/50 hover:border-neutral-700 transition-all hover:bg-neutral-900/60"
+                >
+                  <div className="flex-1 min-w-[300px] space-y-4">
+                    <div className="flex items-center gap-3">
+                      <span className={`px-3 py-1 rounded-full text-[10px] uppercase tracking-[0.3em] font-black border ${resultTone(battle.result)}`}>
+                        Outcome: {battle.result}
                       </span>
-                      <span className="rounded-full border border-neutral-700 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-neutral-300">
-                        vs {battle.opponentName}
+                      <span className="px-3 py-1 rounded-full border border-neutral-800 bg-neutral-900/50 text-[10px] uppercase tracking-[0.3em] font-black text-neutral-500">
+                        Opponent: {battle.opponentName}
                       </span>
                     </div>
-                    <h3 className="text-lg font-semibold text-neutral-100">
-                      {battle.question}
-                    </h3>
-                    <p className="text-sm text-neutral-400">
-                      Resolution source: {battle.resolutionSource}
-                    </p>
+                    <Link href={`/battles/${battle.roundId}`} className="block group/title">
+                      <h3 className="text-2xl font-black tracking-tight group-hover:text-emerald-400 transition-colors leading-tight">
+                        {battle.question}
+                      </h3>
+                    </Link>
+                    <div className="flex items-center gap-4 text-xs font-medium text-neutral-500 italic">
+                      <span className="flex items-center gap-1.5"><Target className="w-3.5 h-3.5" /> {battle.resolutionSource}</span>
+                    </div>
                   </div>
 
-                  <div className="text-right">
-                    <p className="text-xs uppercase tracking-[0.18em] text-neutral-500">
-                      PnL
-                    </p>
-                    <p className="mt-2 text-lg font-semibold text-neutral-100">
-                      {battle.pnlUsd >= 0 ? "+" : ""}
-                      {battle.pnlUsd.toFixed(2)} USDC
-                    </p>
+                  <div className="flex items-center gap-12">
+                    <div className="text-center">
+                      <p className="text-[10px] uppercase tracking-widest text-neutral-600 mb-2">Net PnL</p>
+                      <p className={`text-xl font-black tracking-tighter ${battle.pnlUsd >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                        {battle.pnlUsd >= 0 ? "+" : ""}{battle.pnlUsd.toFixed(2)} USDC
+                      </p>
+                    </div>
+                    
+                    <Link
+                      href={`/battles/${battle.roundId}`}
+                      className="flex items-center gap-3 rounded-full bg-neutral-800 px-6 py-4 text-xs font-black uppercase tracking-widest text-neutral-100 transition hover:bg-neutral-700 group/btn"
+                    >
+                      Inspect Proof
+                      <ChevronRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+                    </Link>
                   </div>
-                </div>
-
-                <div className="mt-5 grid gap-4 md:grid-cols-4">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.18em] text-neutral-500">
-                      Your Side
-                    </p>
-                    <p className="mt-1 text-neutral-100">
-                      {battle.ownSide ?? "pending"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.18em] text-neutral-500">
-                      Opponent Side
-                    </p>
-                    <p className="mt-1 text-neutral-100">
-                      {battle.opponentSide ?? "pending"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.18em] text-neutral-500">
-                      Final Balance
-                    </p>
-                    <p className="mt-1 text-neutral-100">
-                      {battle.ownBalance.toFixed(2)} USDC
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.18em] text-neutral-500">
-                      Outcome
-                    </p>
-                    <p className="mt-1 text-neutral-100">{battle.outcome}</p>
-                  </div>
-                </div>
-
-                <div className="mt-4 rounded-2xl border border-neutral-800 bg-neutral-900/60 p-4">
-                  <p className="text-xs uppercase tracking-[0.18em] text-neutral-500">
-                    Decision Rationale
-                  </p>
-                  <p className="mt-2 text-sm text-neutral-300">
-                    {battle.ownReason ?? "No recorded reason yet."}
-                  </p>
-                </div>
-              </article>
-            ))}
+                </article>
+              ))
+            )}
           </div>
         </section>
       </div>

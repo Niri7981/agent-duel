@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #fcee09;
+  --foreground: #050505;
 }
 
 @theme inline {
@@ -14,13 +14,148 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #fcee09;
+    --foreground: #050505;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Arial Narrow", "Roboto Condensed", "Helvetica Neue", Arial, Helvetica, sans-serif;
+}
+
+.game-title {
+  font-family: Impact, Haettenschweiler, "Arial Narrow", "Arial Black", sans-serif;
+  font-stretch: condensed;
+  letter-spacing: 0;
+  line-height: 0.82;
+  text-transform: uppercase;
+}
+
+.hud-label {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.acid-yellow-section {
+  background-color: #fcee09;
+  color: #050505;
+}
+
+.acid-yellow-gradient {
+  background: linear-gradient(120deg, #fcee09 0%, #fcee09 58%, #d8c900 100%);
+}
+
+.acid-grid-overlay {
+  background-image:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.18) 1px, transparent 1px),
+    linear-gradient(rgba(0, 0, 0, 0.12) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+.industrial-yellow-slab {
+  background-color: #d8c900;
+}
+
+.industrial-black-panel {
+  background-color: #050505;
+  color: #ffffff;
+}
+
+.industrial-dark-card {
+  background-color: #111111;
+  color: #ffffff;
+}
+
+.industrial-dark-steel {
+  background-color: #151515;
+}
+
+.acid-label {
+  background-color: #fcee09;
+  color: #050505;
+}
+
+.acid-shine {
+  background-color: #fff7a0;
+}
+
+.landing-black-text :where(h1, h2, h3, h4, h5, h6, p, a, button, span, div, li, small, strong, em, label) {
+  color: #050505 !important;
+}
+
+.landing-black-text svg {
+  color: #050505 !important;
+  stroke: #050505 !important;
+}
+
+.industrial-clip {
+  clip-path: polygon(0 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 22px 100%, 0 calc(100% - 22px));
+}
+
+.industrial-clip-sm {
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+}
+
+.industrial-grid {
+  background-image:
+    linear-gradient(rgba(252, 238, 9, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(252, 238, 9, 0.05) 1px, transparent 1px);
+  background-size: 72px 72px;
+}
+
+.grid-overlay {
+  background-image:
+    linear-gradient(rgba(252, 238, 9, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(252, 238, 9, 0.08) 1px, transparent 1px);
+  background-size: 80px 80px;
+}
+
+@keyframes scanline-anim {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+
+.scanline::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(252, 238, 9, 0.02) 50%,
+    transparent 100%
+  );
+  height: 100px;
+  width: 100%;
+  animation: scanline-anim 8s linear infinite;
+}
+
+.agentduel-wordmark {
+  position: relative;
+  display: inline-block;
+  font-family: Impact, Haettenschweiler, "Arial Black", sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  letter-spacing: -0.1em;
+  text-transform: uppercase;
+  transform: skewX(-13deg) scaleX(1.08);
+  -webkit-text-stroke: 2px rgba(0, 0, 0, 0.48);
+  text-shadow:
+    8px 8px 0 rgba(252, 238, 9, 0.42),
+    13px 13px 0 rgba(0, 0, 0, 0.18);
+}
+
+.agentduel-wordmark::after {
+  content: "";
+  position: absolute;
+  left: 7%;
+  right: -6%;
+  bottom: -0.08em;
+  height: 0.08em;
+  background: #050505;
+  transform: skewX(-28deg);
+  box-shadow: 32px 0 0 #050505, 0 10px 0 rgba(252, 238, 9, 0.48);
 }

@@ -1,19 +1,64 @@
 "use client";
 
-import {
-  ActionTimeline,
-  AgentCard,
-  BankrollPanel,
-  EventCard,
-  RoundShell,
-  SettlementResult,
-} from "@/components";
-import type { RoundState } from "@/lib/types/round";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { AgentBattleCard } from "@/components/round/AgentBattleCard";
+import { EventDuelStage } from "@/components/round/EventDuelStage";
+import { BattleActionTimeline } from "@/components/round/BattleActionTimeline";
+import { SettlementPanel } from "@/components/round/SettlementPanel";
+import type { RoundState, BankrollBalance } from "@/lib/types/round";
+import type { AgentSummary } from "@/lib/types/agent";
+import type { RoundAction } from "@/lib/types/action";
+import { Zap, Loader2, AlertTriangle, RefreshCw, Swords } from "lucide-react";
 
 type ApiError = {
   error?: string;
 };
+
+export type RoundProofReceipt = {
+  anchoredAt?: string | null;
+  explorerUrl?: string | null;
+  network?: string | null;
+  onchainProofAddress?: string | null;
+  onchainSignature?: string | null;
+  proofHash?: string | null;
+  proofHashEncoding?: string | null;
+  proofVersion?: number | null;
+  slot?: number | null;
+};
+
+export type RoundLeaderboardEntry = {
+  bestStreak: number;
+  currentRank: number;
+  currentStreak: number;
+  id: string;
+  identityKey: string;
+  name: string;
+  rankDelta: number;
+  totalLosses: number;
+  totalWins: number;
+  winRate: number | null;
+};
+
+type ProofApiRecord = Record<string, unknown>;
+
+const PROOF_PAYLOAD_KEYS = [
+  "proofVersion",
+  "roundId",
+  "createdAt",
+  "settledAt",
+  "eventId",
+  "marketSymbol",
+  "question",
+  "resolutionSource",
+  "outcome",
+  "participants",
+  "winnerIdentityKey",
+  "winnerName",
+  "winningSide",
+  "finalBalance",
+  "pnlUsd",
+  "reputationEffects",
+];
 
 async function readRound() {
   const response = await fetch("/api/round", {
@@ -26,7 +71,6 @@ async function readRound() {
 
   if (!response.ok) {
     const payload = (await response.json().catch(() => null)) as ApiError | null;
-
     throw new Error(payload?.error ?? "Failed to load duel round.");
   }
 
@@ -40,57 +84,228 @@ async function createRound() {
 
   if (!response.ok) {
     const payload = (await response.json().catch(() => null)) as ApiError | null;
-
     throw new Error(payload?.error ?? "Failed to create duel round.");
   }
 
   return (await response.json()) as RoundState;
 }
 
-async function settleRound() {
+function isRecord(value: unknown): value is ProofApiRecord {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function canonicalJson(value: unknown): string {
+  if (value === null || typeof value !== "object") {
+    return JSON.stringify(value);
+  }
+
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => canonicalJson(item)).join(",")}]`;
+  }
+
+  return `{${Object.entries(value as ProofApiRecord)
+    .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
+    .map(([key, entryValue]) => {
+      return `${JSON.stringify(key)}:${canonicalJson(entryValue)}`;
+    })
+    .join(",")}}`;
+}
+
+async function sha256Hex(value: string) {
+  const bytes = new TextEncoder().encode(value);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function readString(record: ProofApiRecord, keys: string[]) {
+  for (const key of keys) {
+    const value = record[key];
+
+    if (typeof value === "string" && value.length > 0) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+function readNumber(record: ProofApiRecord, keys: string[]) {
+  for (const key of keys) {
+    const value = record[key];
+
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+function pickProofPayload(record: ProofApiRecord) {
+  const payload = isRecord(record.payload) ? record.payload : record;
+
+  return Object.fromEntries(
+    PROOF_PAYLOAD_KEYS.flatMap((key) =>
+      Object.prototype.hasOwnProperty.call(payload, key)
+        ? [[key, payload[key]]]
+        : [],
+    ),
+  );
+}
+
+async function readBattleProof(roundId: string): Promise<RoundProofReceipt | null> {
+  const response = await fetch(`/api/battles/${roundId}/proof`, {
+    cache: "no-store",
+  });
+
+  if (response.status === 404) {
+    return null;
+  }
+
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as ApiError | null;
+    throw new Error(payload?.error ?? "Failed to load battle proof.");
+  }
+
+  const raw = (await response.json()) as unknown;
+
+  if (!isRecord(raw)) {
+    return null;
+  }
+
+  const payloadRecord = isRecord(raw.payload) ? raw.payload : raw;
+  const record = isRecord(raw.record) ? { ...raw.record, ...raw } : raw;
+  const proofPayload = pickProofPayload(raw);
+  const computedHash =
+    Object.keys(proofPayload).length > 0
+      ? await sha256Hex(canonicalJson(proofPayload))
+      : null;
+
+  return {
+    anchoredAt: readString(record, ["anchoredAt", "onchainAnchoredAt"]),
+    explorerUrl: readString(record, ["explorerUrl", "transactionUrl"]),
+    network: readString(record, ["network", "cluster"]) ?? "localnet",
+    onchainProofAddress: readString(record, [
+      "onchainProofAddress",
+      "proofAddress",
+      "pda",
+    ]),
+    onchainSignature: readString(record, [
+      "onchainSignature",
+      "signature",
+      "txSignature",
+      "transactionSignature",
+    ]),
+    proofHash:
+      readString(record, ["proofHash", "hash", "payloadHash"]) ?? computedHash,
+    proofHashEncoding:
+      readString(record, ["proofHashEncoding", "hashEncoding"]) ??
+      "canonical-json-v1",
+    proofVersion:
+      readNumber(payloadRecord, ["proofVersion"]) ??
+      readNumber(record, ["proofVersion"]),
+    slot: readNumber(record, ["slot", "confirmedSlot"]),
+  };
+}
+
+async function readLeaderboard(): Promise<RoundLeaderboardEntry[]> {
+  const response = await fetch("/api/leaderboard?limit=5", {
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as ApiError | null;
+    throw new Error(payload?.error ?? "Failed to load leaderboard.");
+  }
+
+  return (await response.json()) as RoundLeaderboardEntry[];
+}
+
+function findAgentRoundData(
+  round: RoundState,
+  index: number,
+): {
+  action?: RoundAction;
+  agent: AgentSummary;
+  balance?: BankrollBalance;
+} | null {
+  const agent = round.agents[index];
+
+  if (!agent) {
+    return null;
+  }
+
+  return {
+    action: round.actions.find((entry) => entry.agentId === agent.id),
+    agent,
+    balance: round.balances.find((entry) => entry.agentId === agent.id),
+  };
+}
+
+type SettleAnchorResult =
+  | {
+      error: null;
+      ok: true;
+      onchainProofAddress: string;
+      onchainSignature: string;
+      proofHash: string;
+    }
+  | {
+      error: string;
+      ok: false;
+    };
+
+type SettleResponse = RoundState & {
+  anchor?: SettleAnchorResult | null;
+};
+
+async function settleRound(): Promise<SettleResponse> {
   const response = await fetch("/api/settle", {
     method: "POST",
   });
 
   if (!response.ok) {
     const payload = (await response.json().catch(() => null)) as ApiError | null;
-
     throw new Error(payload?.error ?? "Failed to settle duel round.");
   }
 
-  return (await response.json()) as RoundState;
+  return (await response.json()) as SettleResponse;
 }
 
 export default function RoundPage() {
   const [round, setRound] = useState<RoundState | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [proof, setProof] = useState<RoundProofReceipt | null>(null);
+  const [proofErrorMessage, setProofErrorMessage] = useState<string | null>(null);
+  const [anchorErrorMessage, setAnchorErrorMessage] = useState<string | null>(null);
+  const [isProofLoading, setIsProofLoading] = useState(false);
+  const [leaderboard, setLeaderboard] = useState<RoundLeaderboardEntry[]>([]);
+  const [leaderboardErrorMessage, setLeaderboardErrorMessage] = useState<string | null>(null);
+  const [isLeaderboardLoading, setIsLeaderboardLoading] = useState(false);
+  const [shouldScrollToProof, setShouldScrollToProof] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isCreating, startCreateTransition] = useTransition();
   const [isRefreshing, startRefreshTransition] = useTransition();
   const [isSettling, startSettleTransition] = useTransition();
+  const proofModuleRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
 
-    // 首次进入页面时读取最新一场 duel；如果还没有，就显示空状态。
     void (async () => {
       try {
         const nextRound = await readRound();
-
-        if (cancelled) {
-          return;
+        if (!cancelled) {
+          setRound(nextRound);
+          setErrorMessage(null);
         }
-
-        setRound(nextRound);
-        setErrorMessage(null);
       } catch (error) {
-        if (cancelled) {
-          return;
+        if (!cancelled) {
+          setErrorMessage(error instanceof Error ? error.message : "Failed to load duel round.");
         }
-
-        setErrorMessage(
-          error instanceof Error ? error.message : "Failed to load duel round.",
-        );
       } finally {
         if (!cancelled) {
           setIsInitialLoading(false);
@@ -98,55 +313,141 @@ export default function RoundPage() {
       }
     })();
 
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!round || round.status !== "settled") {
+      setProof(null);
+      setProofErrorMessage(null);
+      setIsProofLoading(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setIsProofLoading(true);
+    setProofErrorMessage(null);
+    void (async () => {
+      try {
+        const nextProof = await readBattleProof(round.id);
+        if (!cancelled) {
+          setProof(nextProof);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setProofErrorMessage(
+            error instanceof Error ? error.message : "Failed to load battle proof.",
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setIsProofLoading(false);
+        }
+      }
+    })();
+
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [round?.id, round?.status]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!round || round.status !== "settled") {
+      setLeaderboard([]);
+      setLeaderboardErrorMessage(null);
+      setIsLeaderboardLoading(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setIsLeaderboardLoading(true);
+    setLeaderboardErrorMessage(null);
+    void (async () => {
+      try {
+        const nextLeaderboard = await readLeaderboard();
+        if (!cancelled) {
+          setLeaderboard(nextLeaderboard);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setLeaderboardErrorMessage(
+            error instanceof Error ? error.message : "Failed to load leaderboard.",
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLeaderboardLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [round?.id, round?.status]);
+
+  useEffect(() => {
+    if (!shouldScrollToProof || round?.status !== "settled") {
+      return;
+    }
+
+    window.setTimeout(() => {
+      proofModuleRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+      setShouldScrollToProof(false);
+    }, 350);
+  }, [round?.status, shouldScrollToProof]);
 
   function handleCreateRound() {
     setErrorMessage(null);
-
+    setProof(null);
+    setProofErrorMessage(null);
+    setLeaderboard([]);
+    setLeaderboardErrorMessage(null);
     startCreateTransition(async () => {
       try {
         const nextRound = await createRound();
-
         setRound(nextRound);
       } catch (error) {
-        setErrorMessage(
-          error instanceof Error ? error.message : "Failed to create duel round.",
-        );
+        setErrorMessage(error instanceof Error ? error.message : "Failed to create duel round.");
       }
     });
   }
 
   function handleRefreshRound() {
     setErrorMessage(null);
-
     startRefreshTransition(async () => {
       try {
         const nextRound = await readRound();
-
         setRound(nextRound);
       } catch (error) {
-        setErrorMessage(
-          error instanceof Error ? error.message : "Failed to refresh duel round.",
-        );
+        setErrorMessage(error instanceof Error ? error.message : "Failed to refresh duel round.");
       }
     });
   }
 
   function handleSettleRound() {
     setErrorMessage(null);
-
+    setAnchorErrorMessage(null);
     startSettleTransition(async () => {
       try {
-        const nextRound = await settleRound();
+        const { anchor, ...nextRound } = await settleRound();
+        setRound(nextRound as RoundState);
+        setShouldScrollToProof(true);
 
-        setRound(nextRound);
+        if (anchor && anchor.ok === false) {
+          setAnchorErrorMessage(`Onchain anchor failed: ${anchor.error}`);
+        }
       } catch (error) {
-        setErrorMessage(
-          error instanceof Error ? error.message : "Failed to settle duel round.",
-        );
+        setErrorMessage(error instanceof Error ? error.message : "Failed to settle duel round.");
       }
     });
   }
@@ -155,118 +456,207 @@ export default function RoundPage() {
 
   if (isInitialLoading) {
     return (
-      <RoundShell>
-        <section className="rounded-3xl border border-neutral-800 bg-neutral-900 p-8">
-          <p className="text-sm text-neutral-400">Loading duel state...</p>
-        </section>
-      </RoundShell>
+      <div
+        className="fixed inset-0 z-50 flex h-screen w-screen flex-col items-center justify-center text-black"
+        style={{ background: "#fcee09", minHeight: "100vh" }}
+      >
+        <Loader2 className="h-12 w-12 animate-spin" />
+        <p className="mt-4 font-mono font-black uppercase tracking-[0.4em]">Syncing Arena</p>
+      </div>
     );
   }
 
   if (!round) {
     return (
-      <RoundShell>
-        <section className="space-y-6 rounded-3xl border border-neutral-800 bg-neutral-900 p-8">
-          <div className="space-y-3">
-            <p className="text-xs uppercase tracking-[0.2em] text-neutral-500">
-              No Active Duel
-            </p>
-            <h2 className="text-3xl font-semibold tracking-tight">
-              Start the first live round.
-            </h2>
-            <p className="max-w-2xl text-sm text-neutral-400">
-              The backend is ready. Create a duel to generate a persisted round,
-              two agent actions, and a pending settlement record.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-3">
-            <button
-              className="rounded-full bg-emerald-400 px-5 py-3 text-sm font-medium text-neutral-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-neutral-700 disabled:text-neutral-300"
-              disabled={isCreating}
+      <main
+        className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden p-6 text-black"
+        style={{ backgroundColor: "#fcee09" }}
+      >
+        <div className="acid-grid-overlay absolute inset-0 opacity-30" />
+        <div className="industrial-clip relative z-10 w-full max-w-2xl border-[6px] border-black bg-[#050505] p-10 text-center text-white">
+           <Zap className="mx-auto mb-6 h-16 w-16 text-[#fcee09]" />
+           <h2 className="mb-4 font-black uppercase italic leading-none tracking-tight text-6xl">Arena Standby</h2>
+           <button
               onClick={handleCreateRound}
-              type="button"
-            >
-              {isCreating ? "Creating Duel..." : "Create Duel"}
-            </button>
-            <button
-              className="rounded-full border border-neutral-700 px-5 py-3 text-sm font-medium text-neutral-100 transition hover:border-neutral-500 disabled:cursor-not-allowed disabled:border-neutral-800 disabled:text-neutral-500"
-              disabled={isRefreshing}
-              onClick={handleRefreshRound}
-              type="button"
-            >
-              Refresh
-            </button>
-          </div>
-
-          {errorMessage ? (
-            <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
-              {errorMessage}
-            </div>
-          ) : null}
-        </section>
-      </RoundShell>
+              disabled={isCreating}
+              className="industrial-clip-sm group relative w-full border-[4px] border-black bg-[#fcee09] px-8 py-5 font-mono text-sm font-black uppercase tracking-[0.24em] text-black"
+           >
+              {isCreating ? "Initializing..." : "Engage Trial"}
+           </button>
+           {errorMessage && (
+             <div className="mt-6 flex items-center justify-center gap-2 text-xs font-bold text-red-500 uppercase tracking-widest">
+               <AlertTriangle className="h-4 w-4" /> {errorMessage}
+             </div>
+           )}
+        </div>
+      </main>
     );
   }
 
+  const leftAgentData = findAgentRoundData(round, 0);
+  const rightAgentData = findAgentRoundData(round, 1);
+
   return (
-    <RoundShell>
-      <section className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-neutral-800 bg-neutral-900 px-5 py-4">
-        <div className="space-y-1">
-          <p className="text-xs uppercase tracking-[0.2em] text-neutral-500">
-            Round Control
-          </p>
-          <p className="text-sm text-neutral-300">
-            Round ID: <span className="font-mono text-neutral-100">{round.id}</span>
-          </p>
-        </div>
+    <div
+      className="relative min-h-screen overflow-x-hidden text-black selection:bg-black selection:text-[#fcee09]"
+      style={{ backgroundColor: "#fcee09" }}
+    >
+      <div className="pointer-events-none fixed inset-0 z-0">
+        <div className="acid-grid-overlay absolute inset-0 opacity-30" />
+        <div className="absolute left-[-12%] top-20 h-40 w-[58%] -skew-x-12 border-y-[6px] border-black bg-[#d8c900]/70" />
+        <div className="absolute bottom-0 right-[-10%] h-56 w-[56%] -skew-x-12 border-t-[6px] border-black bg-[#d8c900]/70" />
+      </div>
 
-        <div className="flex flex-wrap gap-3">
-          <button
-            className="rounded-full border border-neutral-700 px-4 py-2 text-sm font-medium text-neutral-100 transition hover:border-neutral-500 disabled:cursor-not-allowed disabled:border-neutral-800 disabled:text-neutral-500"
-            disabled={showBusyState}
-            onClick={handleRefreshRound}
-            type="button"
-          >
-            {isRefreshing ? "Refreshing..." : "Refresh Round"}
-          </button>
-          <button
-            className="rounded-full bg-emerald-400 px-4 py-2 text-sm font-medium text-neutral-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-neutral-700 disabled:text-neutral-300"
-            disabled={showBusyState || round.status === "settled"}
-            onClick={handleSettleRound}
-            type="button"
-          >
-            {isSettling
-              ? "Settling..."
-              : round.status === "settled"
-                ? "Already Settled"
-                : "Settle Duel"}
-          </button>
-        </div>
-      </section>
+      <main className="relative z-10 mx-auto max-w-[1900px] px-4 py-6 md:px-8">
+        
+        {errorMessage && (
+           <div className="mb-6 border-[4px] border-black bg-[#ff1f2d] px-6 py-4 text-black">
+              <p className="font-mono text-xs font-black uppercase tracking-widest">System Alert: {errorMessage}</p>
+           </div>
+        )}
 
-      {errorMessage ? (
-        <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
-          {errorMessage}
-        </div>
-      ) : null}
-
-      <div className="grid gap-6 lg:grid-cols-[1.4fr_0.9fr]">
-        <section className="space-y-6">
-          <EventCard event={round.event} />
-          <div className="grid gap-4 md:grid-cols-2">
-            {round.agents.map((agent) => (
-              <AgentCard key={agent.id} agent={agent} />
-            ))}
+        <section
+          className="industrial-clip flex min-h-[calc(100vh-150px)] flex-col border-[6px] border-black p-3 text-black md:p-5"
+          style={{ backgroundColor: "#fcee09" }}
+        >
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-4 border-b-[6px] border-black pb-4">
+            <div>
+              <div className="inline-flex border-2 border-black bg-black px-3 py-1 font-mono text-[9px] font-black uppercase tracking-[0.24em] text-[#fcee09]">
+                Product.Module / Live Arena
+              </div>
+              <h2 className="mt-2 font-black uppercase italic leading-none tracking-tight text-4xl text-black md:text-6xl">
+                Battle Round
+              </h2>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="border-[3px] border-black bg-black px-4 py-3 font-mono text-[10px] font-black uppercase tracking-[0.22em] text-[#fcee09]">
+                Settlement: {round.status === "settled" ? "Sealed" : "Pending"}
+              </div>
+              <button
+                className="industrial-clip-sm flex items-center gap-2 border-[3px] border-black bg-[#fcee09] px-4 py-3 font-mono text-[10px] font-black uppercase tracking-[0.2em] text-black disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={showBusyState}
+                onClick={handleRefreshRound}
+                type="button"
+              >
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+                Sync
+              </button>
+              <button
+                className="industrial-clip-sm flex items-center gap-2 border-[3px] border-black bg-black px-4 py-3 font-mono text-[10px] font-black uppercase tracking-[0.2em] text-[#fcee09] disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={showBusyState || round.status === "settled"}
+                onClick={handleSettleRound}
+                type="button"
+              >
+                <Swords className="h-4 w-4" />
+                {isSettling ? "Settling" : round.status === "settled" ? "Settled" : "Settle"}
+              </button>
+            </div>
           </div>
-          <ActionTimeline actions={round.actions} />
+
+          <div className="mb-4 border-[4px] border-black bg-[#fcee09] px-4 py-3 text-center text-black">
+            <div className="font-mono text-[8px] font-black uppercase tracking-[0.22em] text-black">
+              Active Objective
+            </div>
+            <div className="mt-1 line-clamp-1 font-black uppercase italic leading-none text-xl md:text-3xl">
+              {round.event.question}
+            </div>
+          </div>
+
+          {round.status === "settled" && (
+            <div
+              className="mb-4 border-[6px] border-black px-4 py-4 text-center"
+              style={{ backgroundColor: "#050505", color: "#fcee09" }}
+            >
+              <div className="font-mono text-[9px] font-black uppercase tracking-[0.24em]">
+                Battle Result
+              </div>
+              <div
+                className="mt-1 font-black uppercase italic leading-none tracking-tight text-[clamp(36px,6vw,96px)]"
+                style={{ color: round.settlement.winnerAgentId.includes("momentum") ? "#ff1f2d" : "#39ff14" }}
+              >
+                {round.settlement.winnerName} Wins
+              </div>
+            </div>
+          )}
+
+          <div
+            className="grid flex-1 items-stretch gap-2 md:gap-5"
+            style={{
+              gridTemplateColumns: "minmax(0, 1fr) clamp(96px, 12vw, 180px) minmax(0, 1fr)",
+            }}
+          >
+            {leftAgentData && (
+              <AgentBattleCard
+                agent={leftAgentData.agent}
+                action={leftAgentData.action}
+                balance={leftAgentData.balance}
+                side="left"
+              />
+            )}
+
+            <VersusColumn />
+
+            {rightAgentData && (
+              <AgentBattleCard
+                agent={rightAgentData.agent}
+                action={rightAgentData.action}
+                balance={rightAgentData.balance}
+                side="right"
+              />
+            )}
+          </div>
         </section>
 
-        <aside className="space-y-6">
-          <BankrollPanel balances={round.balances} />
-          <SettlementResult settlement={round.settlement} />
-        </aside>
+        <section ref={proofModuleRef} className="mt-10 min-h-screen scroll-mt-6 space-y-8 pb-10">
+          <EventDuelStage
+            event={round.event}
+            leftAgentName={leftAgentData?.agent.name}
+            rightAgentName={rightAgentData?.agent.name}
+            roundStatus={round.status}
+          />
+
+          <BattleActionTimeline actions={round.actions} />
+
+          <SettlementPanel
+            settlement={round.settlement}
+            roundId={round.id}
+            isSettled={round.status === "settled"}
+            outcome={round.event.outcome}
+            proof={proof}
+            proofErrorMessage={proofErrorMessage}
+            anchorErrorMessage={anchorErrorMessage}
+            isProofLoading={isProofLoading}
+            leaderboard={leaderboard}
+            leaderboardErrorMessage={leaderboardErrorMessage}
+            isLeaderboardLoading={isLeaderboardLoading}
+          />
+        </section>
+
+      </main>
+
+      <footer
+        className="relative z-10 mt-8 border-t-[6px] border-black px-8 py-6 text-[#fcee09]"
+        style={{ backgroundColor: "#050505" }}
+      >
+         <div className="mx-auto flex max-w-[1800px] flex-wrap items-center justify-between gap-4 font-mono text-[9px] font-black uppercase tracking-[0.22em]">
+            <span>Network: Solana Localnet</span>
+            <span>Proof Mode: Enabled</span>
+            <span>AgentDuel System Terminal</span>
+         </div>
+      </footer>
+    </div>
+  );
+}
+
+function VersusColumn() {
+  return (
+    <div className="flex h-full min-w-0 items-center justify-center">
+      <div
+        className="font-black italic leading-none tracking-tighter text-black"
+        style={{ fontSize: "clamp(76px, 11vw, 170px)" }}
+      >
+        VS
       </div>
-    </RoundShell>
+    </div>
   );
 }
