@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db/prisma";
-import { decideAction } from "@/lib/runtime/agents/decide-action";
+import { runRoundAgentRuntime } from "@/lib/server/agent-runtime/run-round-agent-runtime";
+import type { AgentRuntimeParticipant } from "@/lib/server/agent-runtime/types";
 import { selectRoundAgents } from "@/lib/server/agents/select-round-agents";
 import { selectRoundEvent } from "@/lib/server/events/select-round-event";
 import type { ArenaEvent } from "@/lib/types/event";
@@ -64,11 +65,7 @@ export async function createRound(input: CreateRoundInput = {}) {
       },
     });
 
-    const createdAgents: Array<{
-      agentKey: string;
-      id: string;
-      runtimeKey: string;
-    }> = [];
+    const runtimeAgents: AgentRuntimeParticipant[] = [];
 
     for (const agent of selectedAgents) {
       // RoundAgent 记录的是“某个公开 agent 参加这一局”的快照，不是全局模板本身。
@@ -83,10 +80,18 @@ export async function createRound(input: CreateRoundInput = {}) {
         },
       });
 
-      createdAgents.push({
-        agentKey: createdAgent.agentKey,
-        id: createdAgent.id,
+      runtimeAgents.push({
+        identityKey: createdAgent.agentKey,
+        name: createdAgent.name,
+        riskProfile:
+          createdAgent.riskProfile === "low" ||
+          createdAgent.riskProfile === "medium" ||
+          createdAgent.riskProfile === "high"
+            ? createdAgent.riskProfile
+            : "medium",
+        roundAgentId: createdAgent.id,
         runtimeKey: agent.runtimeKey,
+        style: createdAgent.style,
       });
     }
 
@@ -95,19 +100,20 @@ export async function createRound(input: CreateRoundInput = {}) {
       id: event.id,
     };
 
-    for (const agent of createdAgents) {
-      // agent runtime 只负责给出决策，真正的落库由服务层完成。
-      const decision = decideAction({
-        agentId: agent.runtimeKey,
-        bankrollUsd: bankrollPerAgent,
-        currentPrice: market.currentPrice,
-        event: eventInput,
-      });
+    const decisions = runRoundAgentRuntime({
+      agents: runtimeAgents,
+      bankrollUsd: bankrollPerAgent,
+      currentPrice: market.currentPrice,
+      event: eventInput,
+      roundId: round.id,
+    });
 
+    for (const decision of decisions) {
+      // agent runtime 只负责给出决策，真正的落库由 round 服务层完成。
       await tx.action.create({
         data: {
           reason: decision.reason,
-          roundAgentId: agent.id,
+          roundAgentId: decision.roundAgentId,
           roundId: round.id,
           side: decision.side,
           sizeUsd: decision.sizeUsd,
