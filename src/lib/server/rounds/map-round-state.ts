@@ -1,5 +1,5 @@
 import type { AgentBrain, AgentSummary } from "@/lib/types/agent";
-import type { RoundAction } from "@/lib/types/action";
+import type { RoundAction, RoundActionTracePhase } from "@/lib/types/action";
 import type { ArenaEvent } from "@/lib/types/event";
 import type { BankrollBalance, RoundState } from "@/lib/types/round";
 import type { RoundSettlement } from "@/lib/types/settlement";
@@ -126,6 +126,20 @@ function mapExecutionStatus(value: string | null) {
   return null;
 }
 
+function mapTracePhase(value: string): RoundActionTracePhase {
+  if (
+    value === "context" ||
+    value === "policy" ||
+    value === "execution" ||
+    value === "decision" ||
+    value === "fallback"
+  ) {
+    return value;
+  }
+
+  return "execution";
+}
+
 function mapActions(round: PersistedRoundRecord): RoundAction[] {
   return round.actions.map((action) => ({
     agentId: action.roundAgent.agentKey,
@@ -143,6 +157,13 @@ function mapActions(round: PersistedRoundRecord): RoundAction[] {
     },
     side: action.side === "no" ? "no" : "yes",
     sizeUsd: action.sizeUsd,
+    trace: action.traceSteps.map((step) => ({
+      detail: step.detail,
+      id: step.id,
+      phase: mapTracePhase(step.phase),
+      stepIndex: step.stepIndex,
+      title: step.title,
+    })),
   }));
 }
 

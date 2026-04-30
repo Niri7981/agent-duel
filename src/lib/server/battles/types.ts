@@ -12,6 +12,21 @@ export type BattleStatus = "live" | "settled";
 // null 表示 action 还没有可用，或者历史数据无法收敛成 yes / no。
 export type BattleParticipantSide = "yes" | "no" | null;
 
+export type BattleRuntimeTracePhase =
+  | "context"
+  | "policy"
+  | "execution"
+  | "decision"
+  | "fallback";
+
+export type BattleRuntimeTraceStep = {
+  id: string;
+  detail: string;
+  phase: BattleRuntimeTracePhase;
+  stepIndex: number;
+  title: string;
+};
+
 // BattleParticipantRecord 是 BattleRecord 里的参赛者视图。
 // 注意这里的 agentId 指的是公开身份 key，也就是 AgentProfile.identityKey / RoundAgent.agentKey，
 // 不是 runtimeKey，也不是底层模型供应商 ID。
@@ -23,6 +38,7 @@ export type BattleParticipantRecord = {
   side: BattleParticipantSide;
   sizeUsd: number | null;
   reason: string | null;
+  trace: BattleRuntimeTraceStep[];
   startingBalance: number;
   finalBalance: number;
   pnlUsd: number;

@@ -12,15 +12,35 @@ const CONTRARIAN_PERSONA = {
 export function runContrarianAgent(
   input: AgentDecisionInput,
 ): AgentDecision {
+  const side = input.currentPrice >= 0.5 ? "no" : "yes";
+  const sizeUsd = Math.min(3, input.bankrollUsd * 0.3);
+
   return {
     execution: {
       model: "rules-contrarian-v1",
       provider: "rules",
       status: "rules",
     },
-    side: input.currentPrice >= 0.5 ? "no" : "yes",
-    sizeUsd: Math.min(3, input.bankrollUsd * 0.3),
     reason: "Takes the opposite side when consensus looks crowded.",
+    side,
+    sizeUsd,
+    trace: [
+      {
+        detail: `Current price ${input.currentPrice.toFixed(2)} used as the crowd consensus signal.`,
+        phase: "context",
+        title: "Consensus Signal Read",
+      },
+      {
+        detail: "Contrarian policy fades crowded direction and limits exposure to 30% of bankroll.",
+        phase: "policy",
+        title: "Crowd Fade Applied",
+      },
+      {
+        detail: `Committed ${side.toUpperCase()} with ${sizeUsd.toFixed(2)} USDC exposure.`,
+        phase: "decision",
+        title: "Arena Action Submitted",
+      },
+    ],
   };
 }
 

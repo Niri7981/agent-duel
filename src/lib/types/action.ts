@@ -7,6 +7,21 @@ export type RoundActionRuntimeSnapshot = {
   runtimeKey: string | null;
 };
 
+export type RoundActionTracePhase =
+  | "context"
+  | "policy"
+  | "execution"
+  | "decision"
+  | "fallback";
+
+export type RoundActionTraceStep = {
+  id: string;
+  detail: string;
+  phase: RoundActionTracePhase;
+  stepIndex: number;
+  title: string;
+};
+
 export type RoundAction = {
   id: string;
   agentId: string;
@@ -16,4 +31,5 @@ export type RoundAction = {
   at: string;
   reason: string;
   runtime?: RoundActionRuntimeSnapshot;
+  trace: RoundActionTraceStep[];
 };

@@ -28,6 +28,9 @@ const roundInclude = {
   actions: {
     include: {
       roundAgent: true,
+      traceSteps: {
+        orderBy: [{ stepIndex: "asc" as const }, { id: "asc" as const }],
+      },
     },
     orderBy: [{ createdAt: "asc" as const }, { id: "asc" as const }],
   },

@@ -8,6 +8,7 @@ export type PersistedRoundRecord = Prisma.RoundGetPayload<{
     actions: {
       include: {
         roundAgent: true;
+        traceSteps: true;
       };
     };
     agents: true;
@@ -22,6 +23,9 @@ export async function getLatestRound(): Promise<PersistedRoundRecord | null> {
       actions: {
         include: {
           roundAgent: true,
+          traceSteps: {
+            orderBy: [{ stepIndex: "asc" }, { id: "asc" }],
+          },
         },
         orderBy: [{ createdAt: "asc" }, { id: "asc" }],
       },

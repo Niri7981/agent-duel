@@ -5,6 +5,7 @@ import type {
   BattleOutcome,
   BattleParticipantRecord,
   BattleParticipantSide,
+  BattleRuntimeTracePhase,
   BattleRecord,
   BattleStatus,
 } from "./types";
@@ -17,7 +18,11 @@ type GetBattleHistoryInput = {
 
 type BattleRoundRecord = Prisma.RoundGetPayload<{
   include: {
-    actions: true;
+    actions: {
+      include: {
+        traceSteps: true;
+      };
+    };
     agents: true;
     event: true;
     settlement: true;
@@ -26,6 +31,11 @@ type BattleRoundRecord = Prisma.RoundGetPayload<{
 
 const battleRoundInclude = {
   actions: {
+    include: {
+      traceSteps: {
+        orderBy: [{ stepIndex: "asc" as const }, { id: "asc" as const }],
+      },
+    },
     orderBy: [{ createdAt: "asc" as const }, { id: "asc" as const }],
   },
   agents: {
@@ -65,6 +75,20 @@ function normalizeParticipantSide(
   return null;
 }
 
+function normalizeTracePhase(value: string): BattleRuntimeTracePhase {
+  if (
+    value === "context" ||
+    value === "policy" ||
+    value === "execution" ||
+    value === "decision" ||
+    value === "fallback"
+  ) {
+    return value;
+  }
+
+  return "execution";
+}
+
 // 这里在干嘛：
 // 把 round 里的某个参赛者快照翻译成 battle record 里的 participant 记录。
 // 为什么这么写：
@@ -99,6 +123,14 @@ function mapAgentToBattleParticipant(
     sizeUsd: action?.sizeUsd ?? null,
     startingBalance: agent.startingBalance,
     style: agent.style,
+    trace:
+      action?.traceSteps.map((step) => ({
+        detail: step.detail,
+        id: step.id,
+        phase: normalizeTracePhase(step.phase),
+        stepIndex: step.stepIndex,
+        title: step.title,
+      })) ?? [],
   };
 }
 
@@ -162,4 +194,3 @@ export async function getBattleHistory(
 
   return rounds.map((round) => mapRoundToBattleRecord(round));
 }
-

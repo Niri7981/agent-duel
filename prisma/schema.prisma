@@ -21,6 +21,7 @@ model Round {
   event            RoundEvent?
   agents           RoundAgent[]
   actions          Action[]
+  actionTraceSteps ActionTraceStep[]
   settlement       Settlement?
   battleProof      BattleProofRecord?
 }
@@ -111,6 +112,7 @@ model RoundAgent {
   updatedAt       DateTime @updatedAt
   round           Round    @relation(fields: [roundId], references: [id], onDelete: Cascade)
   actions         Action[]
+  actionTraceSteps ActionTraceStep[]
 
   @@index([roundId])
   @@unique([roundId, agentKey])
@@ -132,11 +134,32 @@ model Action {
   createdAt         DateTime   @default(now())
   round             Round      @relation(fields: [roundId], references: [id], onDelete: Cascade)
   roundAgent        RoundAgent @relation(fields: [roundAgentId], references: [id], onDelete: Cascade)
+  traceSteps        ActionTraceStep[]
 
   @@index([roundId])
   @@index([roundAgentId])
   @@index([runtimeKey])
   @@index([brainProvider, brainModel])
+}
+
+model ActionTraceStep {
+  id           String     @id @default(cuid())
+  actionId     String
+  roundId      String
+  roundAgentId String
+  stepIndex    Int
+  phase        String
+  title        String
+  detail       String
+  createdAt    DateTime   @default(now())
+  action       Action     @relation(fields: [actionId], references: [id], onDelete: Cascade)
+  round        Round      @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  roundAgent   RoundAgent @relation(fields: [roundAgentId], references: [id], onDelete: Cascade)
+
+  @@unique([actionId, stepIndex])
+  @@index([roundId])
+  @@index([roundAgentId])
+  @@index([phase])
 }
 
 model Settlement {

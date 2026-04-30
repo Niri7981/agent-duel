@@ -18,6 +18,19 @@ export type AgentDecisionExecution = {
   status: AgentDecisionExecutionStatus;
 };
 
+export type AgentDecisionTracePhase =
+  | "context"
+  | "policy"
+  | "execution"
+  | "decision"
+  | "fallback";
+
+export type AgentDecisionTraceStep = {
+  phase: AgentDecisionTracePhase;
+  title: string;
+  detail: string;
+};
+
 export type AgentDecisionInput = {
   event: ArenaEvent;
   currentPrice: number;
@@ -29,4 +42,5 @@ export type AgentDecision = {
   sizeUsd: number;
   reason: string;
   execution?: AgentDecisionExecution;
+  trace?: AgentDecisionTraceStep[];
 };

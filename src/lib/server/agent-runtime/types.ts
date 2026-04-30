@@ -1,4 +1,7 @@
-import type { AgentDecisionExecution } from "@/lib/runtime/agents/types";
+import type {
+  AgentDecisionExecution,
+  AgentDecisionTraceStep,
+} from "@/lib/runtime/agents/types";
 import type { AgentPoolRiskProfile } from "@/lib/server/agents/types";
 import type { ArenaEvent } from "@/lib/types/event";
 
@@ -38,6 +41,7 @@ export type AgentRuntimeDecision = {
   runtimeKey: string;
   side: "yes" | "no";
   sizeUsd: number;
+  trace: AgentDecisionTraceStep[];
 };
 
 export type AgentRuntimeRawDecision = Pick<
@@ -45,6 +49,7 @@ export type AgentRuntimeRawDecision = Pick<
   "reason" | "side" | "sizeUsd"
 > & {
   execution?: AgentDecisionExecution;
+  trace?: AgentDecisionTraceStep[];
 };
 
 export type AgentRuntimeAdapter = {

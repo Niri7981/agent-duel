@@ -143,6 +143,33 @@ CREATE INDEX IF NOT EXISTS Action_runtimeKey_idx
 CREATE INDEX IF NOT EXISTS Action_brainProvider_brainModel_idx
   ON Action(brainProvider, brainModel);
 
+CREATE TABLE IF NOT EXISTS ActionTraceStep (
+  id TEXT PRIMARY KEY NOT NULL,
+  actionId TEXT NOT NULL,
+  roundId TEXT NOT NULL,
+  roundAgentId TEXT NOT NULL,
+  stepIndex INTEGER NOT NULL,
+  phase TEXT NOT NULL,
+  title TEXT NOT NULL,
+  detail TEXT NOT NULL,
+  createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (actionId) REFERENCES Action(id) ON DELETE CASCADE,
+  FOREIGN KEY (roundId) REFERENCES Round(id) ON DELETE CASCADE,
+  FOREIGN KEY (roundAgentId) REFERENCES RoundAgent(id) ON DELETE CASCADE
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS ActionTraceStep_actionId_stepIndex_key
+  ON ActionTraceStep(actionId, stepIndex);
+
+CREATE INDEX IF NOT EXISTS ActionTraceStep_roundId_idx
+  ON ActionTraceStep(roundId);
+
+CREATE INDEX IF NOT EXISTS ActionTraceStep_roundAgentId_idx
+  ON ActionTraceStep(roundAgentId);
+
+CREATE INDEX IF NOT EXISTS ActionTraceStep_phase_idx
+  ON ActionTraceStep(phase);
+
 CREATE TABLE IF NOT EXISTS Settlement (
   id TEXT PRIMARY KEY NOT NULL,
   roundId TEXT NOT NULL UNIQUE,

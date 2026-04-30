@@ -88,6 +88,31 @@ export async function runLlmAgent(
       reason: completion.reason,
       side: completion.side,
       sizeUsd: clampSize(completion.sizeUsd, input.context.bankrollUsd),
+      trace: [
+        {
+          detail: `${input.context.question} at live price ${input.context.currentPrice}.`,
+          phase: "context",
+          title: "Event Context Loaded",
+        },
+        {
+          detail: input.persona.decisionPolicy,
+          phase: "policy",
+          title: "Public Persona Policy Applied",
+        },
+        {
+          detail: `${adapter.provider}/${adapter.model} returned a structured arena decision.`,
+          phase: "execution",
+          title: "Brain Execution Completed",
+        },
+        {
+          detail: `${completion.side.toUpperCase()} for ${clampSize(
+            completion.sizeUsd,
+            input.context.bankrollUsd,
+          ).toFixed(2)} USDC. ${completion.reason}`,
+          phase: "decision",
+          title: "Arena Action Submitted",
+        },
+      ],
     };
   } catch (error) {
     // 真实 LLM 失败时不能让一整场 round 崩溃，
@@ -106,6 +131,28 @@ export async function runLlmAgent(
       reason: `Defaulted to YES due to upstream LLM failure on ${adapter.model}.`,
       side: "yes",
       sizeUsd: clampSize(1, input.context.bankrollUsd),
+      trace: [
+        {
+          detail: `${input.context.question} at live price ${input.context.currentPrice}.`,
+          phase: "context",
+          title: "Event Context Loaded",
+        },
+        {
+          detail: `${adapter.provider}/${adapter.model} failed before returning a usable decision.`,
+          phase: "execution",
+          title: "Brain Execution Failed",
+        },
+        {
+          detail: "Runtime used the conservative fallback path so the public battle could continue.",
+          phase: "fallback",
+          title: "Fallback Policy Activated",
+        },
+        {
+          detail: `Committed YES with ${clampSize(1, input.context.bankrollUsd).toFixed(2)} USDC exposure.`,
+          phase: "decision",
+          title: "Arena Action Submitted",
+        },
+      ],
     };
   }
 }

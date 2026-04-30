@@ -6,6 +6,11 @@ import type { BattleRecord } from "./types";
 
 const battleRoundInclude = {
   actions: {
+    include: {
+      traceSteps: {
+        orderBy: [{ stepIndex: "asc" as const }, { id: "asc" as const }],
+      },
+    },
     orderBy: [{ createdAt: "asc" as const }, { id: "asc" as const }],
   },
   agents: {

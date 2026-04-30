@@ -127,6 +127,16 @@ export async function createRound(input: CreateRoundInput = {}) {
           runtimeKey: decision.runtimeKey,
           side: decision.side,
           sizeUsd: decision.sizeUsd,
+          traceSteps: {
+            create: decision.trace.map((step, stepIndex) => ({
+              detail: step.detail,
+              phase: step.phase,
+              roundAgentId: decision.roundAgentId,
+              roundId: round.id,
+              stepIndex,
+              title: step.title,
+            })),
+          },
         },
       });
     }
@@ -146,6 +156,9 @@ export async function createRound(input: CreateRoundInput = {}) {
         actions: {
           include: {
             roundAgent: true,
+            traceSteps: {
+              orderBy: [{ stepIndex: "asc" }, { id: "asc" }],
+            },
           },
           orderBy: [{ createdAt: "asc" }, { id: "asc" }],
         },

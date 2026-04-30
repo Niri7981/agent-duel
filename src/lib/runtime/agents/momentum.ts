@@ -12,15 +12,35 @@ const MOMENTUM_PERSONA = {
 export function runMomentumAgent(
   input: AgentDecisionInput,
 ): AgentDecision {
+  const side = input.currentPrice >= 0.5 ? "yes" : "no";
+  const sizeUsd = Math.min(4, input.bankrollUsd * 0.4);
+
   return {
     execution: {
       model: "rules-momentum-v1",
       provider: "rules",
       status: "rules",
     },
-    side: input.currentPrice >= 0.5 ? "yes" : "no",
-    sizeUsd: Math.min(4, input.bankrollUsd * 0.4),
     reason: "Follows the current market direction with controlled size.",
+    side,
+    sizeUsd,
+    trace: [
+      {
+        detail: `Current price ${input.currentPrice.toFixed(2)} compared against the 0.50 momentum line.`,
+        phase: "context",
+        title: "Price Signal Read",
+      },
+      {
+        detail: "Momentum policy follows confirmed direction and caps exposure at 40% of bankroll.",
+        phase: "policy",
+        title: "Momentum Policy Applied",
+      },
+      {
+        detail: `Committed ${side.toUpperCase()} with ${sizeUsd.toFixed(2)} USDC exposure.`,
+        phase: "decision",
+        title: "Arena Action Submitted",
+      },
+    ],
   };
 }
 
