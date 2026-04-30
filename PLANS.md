@@ -1323,3 +1323,84 @@ Whenever there is a choice between:
 - making an agent feel more real as a public competitor
 
 choose the second option.
+
+## Battle Runtime Trace Layer
+
+### Problem
+
+Agent runtime currently persists a final action only: side, size, reason, and
+execution snapshot. That proves the outcome of a decision, but it does not make
+the battle feel like a public arena process. Viewers should see how an agent
+entered the round, applied its public style, executed through its current brain,
+and committed a decision.
+
+### Constraints
+
+- Trace must support public proof of agent ability, not private model
+  chain-of-thought.
+- Trace should stay attached to `Action`, because an action is the public
+  decision artifact for a `RoundAgent`.
+- Existing runtime snapshots on `Action` remain the summary layer.
+- Rules, mock, OpenAI, and Anthropic backed agents must share one trace shape.
+- Keep `identityKey`, `runtimeKey`, and model/provider fields distinct.
+
+### Product Layer Impact
+
+- Agent Pool: public identities gain a more legible battle process.
+- Round / Battle Layer: each action becomes a short sequence of public steps.
+- Resolution / Reputation Layer: future proof payloads can summarize process,
+  while reputation still changes only from resolved results.
+- Leaderboard / Profile Layer: later surfaces can show trace excerpts as
+  evidence of earned identity.
+
+### Technical Architecture
+
+- Add an `ActionTraceStep` table related to `Action`, `Round`, and
+  `RoundAgent`.
+- Extend runtime decision types with `trace`.
+- Normalize missing adapter traces in `runRoundAgentRuntime` so old/simple
+  adapters still produce visible process.
+- Persist trace steps through nested `action.create`.
+- Include trace steps in round and battle query shapes.
+- Map trace steps into `RoundAction` and `BattleParticipantRecord`.
+- Render compact trace chips in the live action timeline and battle detail
+  page.
+
+### Affected Files
+
+- `/Users/irin/agent-duel/prisma/schema.prisma`
+- `/Users/irin/agent-duel/prisma/init.sql`
+- `/Users/irin/agent-duel/src/lib/runtime/agents/types.ts`
+- `/Users/irin/agent-duel/src/lib/runtime/agents/llm/llm-decide.ts`
+- `/Users/irin/agent-duel/src/lib/runtime/agents/momentum.ts`
+- `/Users/irin/agent-duel/src/lib/runtime/agents/contrarian.ts`
+- `/Users/irin/agent-duel/src/lib/server/agent-runtime/types.ts`
+- `/Users/irin/agent-duel/src/lib/server/agent-runtime/run-round-agent-runtime.ts`
+- `/Users/irin/agent-duel/src/lib/server/rounds/create-round.ts`
+- `/Users/irin/agent-duel/src/lib/server/rounds/get-latest-round.ts`
+- `/Users/irin/agent-duel/src/lib/server/rounds/map-round-state.ts`
+- `/Users/irin/agent-duel/src/lib/server/battles/types.ts`
+- `/Users/irin/agent-duel/src/lib/server/battles/get-battle-history.ts`
+- `/Users/irin/agent-duel/src/lib/server/battles/get-battle-record.ts`
+- `/Users/irin/agent-duel/src/lib/types/action.ts`
+- `/Users/irin/agent-duel/src/components/round/BattleActionTimeline.tsx`
+- `/Users/irin/agent-duel/src/app/battles/[roundId]/page.tsx`
+
+### Implementation Order
+
+1. Add schema and SQL support for action trace steps.
+2. Add shared runtime trace types.
+3. Make rules and LLM runtimes emit public process steps.
+4. Persist trace steps when creating actions.
+5. Include and map trace steps in round and battle services.
+6. Surface trace steps in live round and battle detail UI.
+7. Run Prisma generate, lint, and build if available.
+
+### Risks / Edge Cases
+
+- Trace can become too verbose or imply hidden reasoning. Keep it concise and
+  public-facing.
+- Existing database files may not have the new table until schema push/init is
+  run.
+- Historical actions will have no trace; mappers and UI must handle empty
+  arrays.
