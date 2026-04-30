@@ -1,4 +1,7 @@
-import type { AgentDecision } from "@/lib/runtime/agents/types";
+import type {
+  AgentDecision,
+  AgentDecisionExecution,
+} from "@/lib/runtime/agents/types";
 
 // LLM adapter 是 Agent Runtime 的下一层。
 // Agent 提交一段标准化 prompt 给 LLM，LLM 回一段 JSON，
@@ -43,4 +46,5 @@ export type LlmDecisionContext = {
 export type LlmDecision = AgentDecision & {
   brainProvider: LlmAdapter["provider"];
   brainModel: string;
+  execution: AgentDecisionExecution;
 };

@@ -81,6 +81,10 @@ export async function createRound(input: CreateRoundInput = {}) {
       });
 
       runtimeAgents.push({
+        brain: {
+          model: agent.brainModel,
+          provider: agent.brainProvider,
+        },
         identityKey: createdAgent.agentKey,
         name: createdAgent.name,
         riskProfile:
@@ -113,8 +117,14 @@ export async function createRound(input: CreateRoundInput = {}) {
       await tx.action.create({
         data: {
           reason: decision.reason,
+          brainModel: decision.brainModel,
+          brainProvider: decision.brainProvider,
+          executionModel: decision.executionModel,
+          executionProvider: decision.executionProvider,
+          executionStatus: decision.executionStatus,
           roundAgentId: decision.roundAgentId,
           roundId: round.id,
+          runtimeKey: decision.runtimeKey,
           side: decision.side,
           sizeUsd: decision.sizeUsd,
         },

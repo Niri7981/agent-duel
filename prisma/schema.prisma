@@ -117,18 +117,26 @@ model RoundAgent {
 }
 
 model Action {
-  id           String     @id @default(cuid())
-  roundId      String
-  roundAgentId String
-  side         String
-  sizeUsd      Float
-  reason       String
-  createdAt    DateTime   @default(now())
-  round        Round      @relation(fields: [roundId], references: [id], onDelete: Cascade)
-  roundAgent   RoundAgent @relation(fields: [roundAgentId], references: [id], onDelete: Cascade)
+  id                String     @id @default(cuid())
+  roundId           String
+  roundAgentId      String
+  side              String
+  sizeUsd           Float
+  reason            String
+  runtimeKey        String?
+  brainProvider     String?
+  brainModel        String?
+  executionProvider String?
+  executionModel    String?
+  executionStatus   String?
+  createdAt         DateTime   @default(now())
+  round             Round      @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  roundAgent        RoundAgent @relation(fields: [roundAgentId], references: [id], onDelete: Cascade)
 
   @@index([roundId])
   @@index([roundAgentId])
+  @@index([runtimeKey])
+  @@index([brainProvider, brainModel])
 }
 
 model Settlement {

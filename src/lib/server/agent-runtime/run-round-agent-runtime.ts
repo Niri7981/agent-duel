@@ -1,5 +1,6 @@
 import type {
   AgentRuntimeDecision,
+  AgentRuntimeRawDecision,
   AgentRuntimeParticipant,
 } from "./types";
 import { getAgentRuntimeAdapter } from "./registry";
@@ -19,6 +20,32 @@ function clampDecisionSize(sizeUsd: number, bankrollUsd: number) {
   }
 
   return Math.min(Math.max(sizeUsd, 0), bankrollUsd);
+}
+
+function getFallbackExecution(
+  agent: AgentRuntimeParticipant,
+  decision: AgentRuntimeRawDecision,
+): NonNullable<AgentRuntimeRawDecision["execution"]> {
+  if (decision.execution) {
+    return decision.execution;
+  }
+
+  if (agent.brain.provider === "rules") {
+    return {
+      model: agent.brain.model ?? `${agent.runtimeKey}-rules`,
+      provider: "rules",
+      status: "rules",
+    };
+  }
+
+  return {
+    model: agent.brain.model,
+    provider:
+      agent.brain.provider === "openai" || agent.brain.provider === "anthropic"
+        ? agent.brain.provider
+        : "mock",
+    status: "failed-fallback",
+  };
 }
 
 // 这里在干嘛：
@@ -46,8 +73,14 @@ export async function runRoundAgentRuntime(
         ),
         roundId: input.roundId,
       });
+      const execution = getFallbackExecution(agent, decision);
 
       return {
+        brainModel: agent.brain.model,
+        brainProvider: agent.brain.provider,
+        executionModel: execution.model,
+        executionProvider: execution.provider,
+        executionStatus: execution.status,
         identityKey: agent.identityKey,
         reason: decision.reason,
         roundAgentId: agent.roundAgentId,

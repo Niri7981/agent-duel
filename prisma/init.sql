@@ -120,6 +120,12 @@ CREATE TABLE IF NOT EXISTS Action (
   side TEXT NOT NULL,
   sizeUsd REAL NOT NULL,
   reason TEXT NOT NULL,
+  runtimeKey TEXT,
+  brainProvider TEXT,
+  brainModel TEXT,
+  executionProvider TEXT,
+  executionModel TEXT,
+  executionStatus TEXT,
   createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (roundId) REFERENCES Round(id) ON DELETE CASCADE,
   FOREIGN KEY (roundAgentId) REFERENCES RoundAgent(id) ON DELETE CASCADE
@@ -130,6 +136,12 @@ CREATE INDEX IF NOT EXISTS Action_roundId_idx
 
 CREATE INDEX IF NOT EXISTS Action_roundAgentId_idx
   ON Action(roundAgentId);
+
+CREATE INDEX IF NOT EXISTS Action_runtimeKey_idx
+  ON Action(runtimeKey);
+
+CREATE INDEX IF NOT EXISTS Action_brainProvider_brainModel_idx
+  ON Action(brainProvider, brainModel);
 
 CREATE TABLE IF NOT EXISTS Settlement (
   id TEXT PRIMARY KEY NOT NULL,

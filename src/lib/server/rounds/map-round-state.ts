@@ -100,6 +100,32 @@ function mapAgents(
   }));
 }
 
+function mapRuntimeProvider(value: string | null) {
+  if (
+    value === "anthropic" ||
+    value === "mock" ||
+    value === "openai" ||
+    value === "rules"
+  ) {
+    return value;
+  }
+
+  return null;
+}
+
+function mapExecutionStatus(value: string | null) {
+  if (
+    value === "completed" ||
+    value === "failed-fallback" ||
+    value === "mocked" ||
+    value === "rules"
+  ) {
+    return value;
+  }
+
+  return null;
+}
+
 function mapActions(round: PersistedRoundRecord): RoundAction[] {
   return round.actions.map((action) => ({
     agentId: action.roundAgent.agentKey,
@@ -107,6 +133,14 @@ function mapActions(round: PersistedRoundRecord): RoundAction[] {
     at: formatElapsedTime(action.createdAt, round.startsAt),
     id: action.id,
     reason: action.reason,
+    runtime: {
+      brainModel: action.brainModel,
+      brainProvider: mapRuntimeProvider(action.brainProvider),
+      executionModel: action.executionModel,
+      executionProvider: mapRuntimeProvider(action.executionProvider),
+      executionStatus: mapExecutionStatus(action.executionStatus),
+      runtimeKey: action.runtimeKey,
+    },
     side: action.side === "no" ? "no" : "yes",
     sizeUsd: action.sizeUsd,
   }));

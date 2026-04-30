@@ -70,6 +70,11 @@ export async function runLlmAgent(
   const adapter = getLlmAdapterForBrain(input.brain);
   const systemPrompt = buildSystemPrompt(input.persona);
   const userPrompt = buildUserPrompt(input.context);
+  const completedExecution = {
+    model: adapter.model,
+    provider: adapter.provider,
+    status: adapter.provider === "mock" ? "mocked" : "completed",
+  } as const;
 
   try {
     const completion = await adapter.complete({
@@ -79,6 +84,7 @@ export async function runLlmAgent(
     });
 
     return {
+      execution: completedExecution,
       reason: completion.reason,
       side: completion.side,
       sizeUsd: clampSize(completion.sizeUsd, input.context.bankrollUsd),
@@ -92,6 +98,11 @@ export async function runLlmAgent(
     );
 
     return {
+      execution: {
+        model: adapter.model,
+        provider: adapter.provider,
+        status: "failed-fallback",
+      },
       reason: `Defaulted to YES due to upstream LLM failure on ${adapter.model}.`,
       side: "yes",
       sizeUsd: clampSize(1, input.context.bankrollUsd),

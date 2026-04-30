@@ -1,5 +1,74 @@
 # PLANS.md
 
+## Immediate Plan: Agent Runtime Brain Closure
+
+### Problem
+
+The current round flow has a real runtime dispatcher, but it still leaves three
+gaps in the agent proof story:
+
+- LLM-backed adapters do not yet consume the selected `AgentProfile` brain
+  snapshot from the database.
+- `Action` rows only store `side`, `sizeUsd`, and `reason`, so a historical
+  decision does not prove which runtime and brain produced it.
+- Momentum and Contrarian are still pure rules while the demo narrative wants
+  every public agent to feel like an Arena Agent with a swappable model brain.
+
+### Constraints
+
+- Keep public identity keyed by `identityKey`; do not confuse it with
+  `runtimeKey`.
+- Keep the runtime registry as the adapter boundary.
+- Preserve existing battle rows by adding nullable snapshot fields.
+- Keep the demo robust when OpenAI / Anthropic keys are missing by retaining
+  mock fallback.
+
+### Product Layer Impact
+
+This advances the Agent Pool and Round / Battle layers. A round action can now
+say which public agent acted, which runtime style it used, which brain it was
+configured with, and whether the execution hit a real provider or fallback.
+
+### Technical Architecture
+
+- Extend runtime decisions with an execution snapshot.
+- Convert `AgentRuntimeBrain` into LLM `BrainConfig` at the registry boundary.
+- Run Momentum and Contrarian through LLM personas when their profile brain is
+  OpenAI / Anthropic, while retaining rules fallback for rules brains.
+- Persist runtime and brain snapshot fields on `Action`.
+- Map persisted snapshots back to `RoundAction` for UI/proof surfaces.
+
+### Affected Files
+
+- `/Users/irin/agent-duel/PLANS.md`
+- `/Users/irin/agent-duel/prisma/schema.prisma`
+- `/Users/irin/agent-duel/src/lib/runtime/agents/types.ts`
+- `/Users/irin/agent-duel/src/lib/runtime/agents/llm/llm-decide.ts`
+- `/Users/irin/agent-duel/src/lib/runtime/agents/llm-news.ts`
+- `/Users/irin/agent-duel/src/lib/runtime/agents/llm-quant.ts`
+- `/Users/irin/agent-duel/src/lib/server/agent-runtime/types.ts`
+- `/Users/irin/agent-duel/src/lib/server/agent-runtime/registry.ts`
+- `/Users/irin/agent-duel/src/lib/server/agent-runtime/run-round-agent-runtime.ts`
+- `/Users/irin/agent-duel/src/lib/server/rounds/create-round.ts`
+- `/Users/irin/agent-duel/src/lib/server/rounds/map-round-state.ts`
+- `/Users/irin/agent-duel/src/lib/types/action.ts`
+
+### Implementation Order
+
+1. Extend runtime and action types with execution snapshot fields.
+2. Pass DB brain into LLM-backed adapters.
+3. Add LLM persona adapters for Momentum and Contrarian with rules fallback.
+4. Persist action runtime / brain / execution snapshots.
+5. Update Prisma schema, generate client, and run type/lint checks.
+
+### Risks / Edge Cases
+
+- Existing action rows will have null snapshots until a new round is created.
+- If an agent profile has a rules brain, Momentum / Contrarian should keep
+  deterministic rules behavior instead of forcing LLM.
+- If provider keys are missing, the execution provider should show `mock` while
+  the configured brain still shows `openai` or `anthropic`.
+
 ## Immediate Plan: Onchain Proof Verification Polish
 
 ### Problem

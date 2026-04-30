@@ -9,7 +9,7 @@ import type { InternalAgentProfile } from "./types";
 //   （这是 AgentDuel 最核心的 “Agent != Model” 抽象）
 //
 // runtimeKey 控制内部 adapter：
-// - "momentum" / "contrarian"：内置规则，brainProvider = "rules"
+// - "momentum" / "contrarian"：persona adapter，优先按 brain 走 LLM，必要时保留 rules fallback
 // - "llm-news" / "llm-quant"：LLM-backed adapter，按 brain 配置选 OpenAI / Anthropic
 //AgentDuel 初始承认的公开参赛者身份种子。
 export const AGENT_POOL: Array<
@@ -21,9 +21,9 @@ export const AGENT_POOL: Array<
     avatarSeed: "momentum-surge",
     badge: "Rising",
     bestStreak: 4,
-    brainModel: "rules-momentum-v1",
-    brainProvider: "rules",
-    brainSwappedAt: null,
+    brainModel: "gpt-5",
+    brainProvider: "openai",
+    brainSwappedAt: "2026-04-24T00:00:00.000Z",
     currentRank: 1,
     currentStreak: 3,
     identityKey: "agent-momentum",
@@ -41,9 +41,9 @@ export const AGENT_POOL: Array<
     avatarSeed: "contrarian-vault",
     badge: "Provocateur",
     bestStreak: 5,
-    brainModel: "rules-contrarian-v1",
-    brainProvider: "rules",
-    brainSwappedAt: null,
+    brainModel: "claude-3-5-sonnet-latest",
+    brainProvider: "anthropic",
+    brainSwappedAt: "2026-04-24T00:00:00.000Z",
     currentRank: 2,
     currentStreak: 1,
     identityKey: "agent-contrarian",

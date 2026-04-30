@@ -1,7 +1,14 @@
+import type { AgentDecisionExecution } from "@/lib/runtime/agents/types";
 import type { AgentPoolRiskProfile } from "@/lib/server/agents/types";
 import type { ArenaEvent } from "@/lib/types/event";
 
+export type AgentRuntimeBrain = {
+  model: string | null;
+  provider: "anthropic" | "mock" | "openai" | "rules" | null;
+};
+
 export type AgentRuntimeParticipant = {
+  brain: AgentRuntimeBrain;
   identityKey: string;
   name: string;
   riskProfile: AgentPoolRiskProfile;
@@ -20,6 +27,11 @@ export type AgentRuntimeDecisionInput = {
 };
 
 export type AgentRuntimeDecision = {
+  brainModel: string | null;
+  brainProvider: AgentRuntimeBrain["provider"];
+  executionModel: string | null;
+  executionProvider: AgentDecisionExecution["provider"];
+  executionStatus: AgentDecisionExecution["status"];
   identityKey: string;
   reason: string;
   roundAgentId: string;
@@ -28,10 +40,12 @@ export type AgentRuntimeDecision = {
   sizeUsd: number;
 };
 
-export type AgentRuntimeRawDecision = Omit<
+export type AgentRuntimeRawDecision = Pick<
   AgentRuntimeDecision,
-  "identityKey" | "roundAgentId" | "runtimeKey"
->;
+  "reason" | "side" | "sizeUsd"
+> & {
+  execution?: AgentDecisionExecution;
+};
 
 export type AgentRuntimeAdapter = {
   decide(
