@@ -1,18 +1,31 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { LandingAgent, MOCK_AGENTS } from "@/lib/mocks/landing-demo-data";
+import {
+  formatLandingBrain,
+  type LandingAgent,
+} from "@/lib/landing/use-landing-agents";
 import { AgentCard } from "./AgentCard";
 import { Crown, Swords } from "lucide-react";
 
 interface AgentSelectionSectionProps {
+  agents: LandingAgent[];
+  errorMessage: string | null;
+  isLoading: boolean;
   selectedAgentId: string | null;
   onSelectAgent: (id: string) => void;
 }
 
-export function AgentSelectionSection({ selectedAgentId, onSelectAgent }: AgentSelectionSectionProps) {
-  const selectedAgent = MOCK_AGENTS.find((agent) => agent.id === selectedAgentId) || MOCK_AGENTS[0];
-  const posterAgents = MOCK_AGENTS.filter((agent) => agent.image);
+export function AgentSelectionSection({
+  agents,
+  errorMessage,
+  isLoading,
+  selectedAgentId,
+  onSelectAgent,
+}: AgentSelectionSectionProps) {
+  const selectedAgent =
+    agents.find((agent) => agent.id === selectedAgentId) ?? agents[0] ?? null;
+  const posterAgents = agents;
 
   return (
     <section id="agents" className="relative min-h-screen overflow-hidden bg-[#fcee09] py-24 text-black md:py-28">
@@ -57,7 +70,7 @@ export function AgentSelectionSection({ selectedAgentId, onSelectAgent }: AgentS
                 Pick a public identity.
               </p>
             </div>
-            <SelectedAgentDossier agent={selectedAgent} />
+            {selectedAgent ? <SelectedAgentDossier agent={selectedAgent} /> : null}
           </div>
         </motion.div>
 
@@ -68,7 +81,7 @@ export function AgentSelectionSection({ selectedAgentId, onSelectAgent }: AgentS
                 className="mb-2 text-[10px] font-black text-[#fcee09]"
                 style={{ fontFamily: "monospace", letterSpacing: "0.22em", textTransform: "uppercase" }}
               >
-                Agent Roster
+                Live Agent Pool
               </div>
               <h3
                 className="font-black italic leading-none text-white"
@@ -82,21 +95,29 @@ export function AgentSelectionSection({ selectedAgentId, onSelectAgent }: AgentS
               </h3>
             </div>
             <div className="text-[10px] font-black text-white/55" style={{ fontFamily: "monospace", letterSpacing: "0.22em", textTransform: "uppercase" }}>
-              EVERY WIN BUILDS REPUTATION.
+              {posterAgents.length} PUBLIC IDENTITIES ONLINE.
             </div>
           </div>
 
-          <div className="relative flex flex-wrap justify-center gap-8 overflow-visible px-2 pb-10 pt-6">
-            {posterAgents.map((agent) => (
-              <div key={agent.id} className="shrink-0 snap-start">
-                <AgentCard
-                  agent={agent}
-                  isSelected={selectedAgentId === agent.id}
-                  onSelect={onSelectAgent}
-                />
-              </div>
-            ))}
-          </div>
+          {isLoading ? (
+            <AgentPoolState label="Loading live agent pool..." />
+          ) : errorMessage ? (
+            <AgentPoolState label={errorMessage} tone="error" />
+          ) : posterAgents.length === 0 ? (
+            <AgentPoolState label="No public agents online." />
+          ) : (
+            <div className="relative flex flex-wrap justify-center gap-8 overflow-visible px-2 pb-10 pt-6">
+              {posterAgents.map((agent) => (
+                <div key={agent.id} className="shrink-0 snap-start">
+                  <AgentCard
+                    agent={agent}
+                    isSelected={selectedAgentId === agent.id}
+                    onSelect={onSelectAgent}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </section>
@@ -125,18 +146,54 @@ function SelectedAgentDossier({ agent }: { agent: LandingAgent }) {
         {agent.archetype}
       </div>
       <div className="mt-5 flex flex-wrap gap-2">
-        <DossierTag label="Risk" value={agent.riskProfile} />
+        <DossierTag label="Risk" value={agent.riskLabel} />
         <DossierTag label="Win Rate" value={agent.winRate} />
         <DossierTag label="Streak" value={`${agent.streak}W`} />
+        <DossierTag label="Brain" value={formatLandingBrain(agent)} emphasis />
       </div>
     </motion.div>
   );
 }
 
-function DossierTag({ label, value }: { label: string; value: string }) {
+function DossierTag({
+  emphasis = false,
+  label,
+  value,
+}: {
+  emphasis?: boolean;
+  label: string;
+  value: string;
+}) {
   return (
-    <span className="border-2 border-[#fcee09] bg-[#151515] px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.18em] text-white">
+    <span
+      className={`border-2 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.18em] ${
+        emphasis
+          ? "border-[#fcee09] bg-[#fcee09] text-black"
+          : "border-[#fcee09] bg-[#151515] text-white"
+      }`}
+    >
       {label}: {value}
     </span>
+  );
+}
+
+function AgentPoolState({
+  label,
+  tone = "neutral",
+}: {
+  label: string;
+  tone?: "error" | "neutral";
+}) {
+  return (
+    <div
+      className={`mx-auto my-10 max-w-xl border-4 p-8 text-center text-xs font-black uppercase tracking-[0.22em] ${
+        tone === "error"
+          ? "border-[#ff1f2d] bg-[#210608] text-[#ff9aa2]"
+          : "border-[#fcee09] bg-[#111111] text-white"
+      }`}
+      style={{ fontFamily: "monospace" }}
+    >
+      {label}
+    </div>
   );
 }

@@ -2,7 +2,11 @@
 
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { LandingAgent } from "@/lib/mocks/landing-demo-data";
+import Link from "next/link";
+import {
+  formatLandingBrain,
+  type LandingAgent,
+} from "@/lib/landing/use-landing-agents";
 import { Flame, Radar, Shield, Trophy, Zap, Lock } from "lucide-react";
 
 interface AgentCardProps {
@@ -22,10 +26,23 @@ export function AgentCardFront({ agent, isSelected, onSelect }: AgentCardProps) 
 
   return (
     <motion.div
+      role="button"
+      tabIndex={0}
+      onClick={() => onSelect(agent.id)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onSelect(agent.id);
+        }
+      }}
       animate={{
         scale: isSelected ? 1.08 : 0.96,
         y: isSelected ? -16 : 0,
-        rotateZ: isSelected ? (agent.id === "momentum" ? -1 : 1) : 0,
+        rotateZ: isSelected
+          ? agent.identityKey === "agent-momentum"
+            ? -1
+            : 1
+          : 0,
         opacity: isSelected ? 1 : 0.72,
       }}
       transition={{
@@ -33,11 +50,10 @@ export function AgentCardFront({ agent, isSelected, onSelect }: AgentCardProps) 
         stiffness: 260,
         damping: 20,
       }}
+      className="cursor-pointer outline-none"
       style={{ zIndex: isSelected ? 20 : 1 }}
     >
-      <button
-        type="button"
-        onClick={() => onSelect(agent.id)}
+      <article
         style={{
           width: "clamp(280px, 31vw, 360px)",
           height: "clamp(520px, 58vw, 650px)",
@@ -49,7 +65,7 @@ export function AgentCardFront({ agent, isSelected, onSelect }: AgentCardProps) 
         }`}
       >
         <div
-          className="absolute inset-0"
+          className="pointer-events-none absolute inset-0"
           style={{
             borderColor: isSelected ? agent.accent : undefined,
             boxShadow: isSelected ? `inset 0 0 0 3px ${agent.accent}, 0 0 70px ${agent.color}55` : undefined,
@@ -80,12 +96,12 @@ export function AgentCardFront({ agent, isSelected, onSelect }: AgentCardProps) 
               />
             ) : (
               <div className="relative z-10 flex h-32 w-32 items-center justify-center border-4 bg-[#050505]" style={{ borderColor: agent.color }}>
-                <AgentFallbackIcon agentId={agent.id} color={agent.accent} />
+                <AgentFallbackIcon agentId={agent.identityKey} color={agent.accent} />
               </div>
             )}
             <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
               <div className="industrial-clip-sm border-2 border-[#fcee09] bg-[#050505] px-2 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-white">
-                {agent.riskProfile}
+                {agent.riskLabel}
               </div>
               <div className="industrial-clip-sm border-2 border-black bg-[#fcee09] px-2 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-black">
                 {agent.winRate} WR
@@ -95,6 +111,12 @@ export function AgentCardFront({ agent, isSelected, onSelect }: AgentCardProps) 
 
           <div className="flex min-h-0 flex-1 flex-col justify-between space-y-2 bg-[#050505] p-4">
             <div>
+              <Link
+                href={`/agents/${agent.id}`}
+                className="relative z-20 inline-block outline-none transition hover:translate-x-1 focus-visible:ring-2 focus-visible:ring-[#fcee09]"
+                onClick={(event) => event.stopPropagation()}
+                onKeyDown={(event) => event.stopPropagation()}
+              >
               <h3
                 className="font-black italic leading-none text-white"
                 style={{
@@ -105,16 +127,18 @@ export function AgentCardFront({ agent, isSelected, onSelect }: AgentCardProps) 
               >
                 {agent.codename}
               </h3>
+              </Link>
               <p className="mt-1.5 text-lg font-black uppercase leading-none" style={{ color: agent.accent }}>
                 {agent.archetype}
               </p>
             </div>
 
             <div className="grid grid-cols-2 gap-2">
-              <AgentStat label="Risk" value={agent.riskProfile} />
+              <AgentStat label="Risk" value={agent.riskLabel} />
               <AgentStat label="Win Rate" value={agent.winRate} />
               <AgentStat label="Streak" value={`${agent.streak}W`} />
               <AgentStat label="Rank" value={`#${agent.rank}`} />
+              <AgentStat label="Brain" value={formatLandingBrain(agent)} wide />
             </div>
 
             <div className="flex items-center justify-between border-t-2 border-[#202326] pt-3">
@@ -143,26 +167,51 @@ export function AgentCardFront({ agent, isSelected, onSelect }: AgentCardProps) 
             </div>
           </div>
         </div>
-      </button>
+      </article>
     </motion.div>
   );
 }
 
-function AgentStat({ label, value }: { label: string; value: string }) {
+function AgentStat({
+  label,
+  value,
+  wide = false,
+}: {
+  label: string;
+  value: string;
+  wide?: boolean;
+}) {
   return (
-    <div className="min-h-[48px] border-2 border-[#202326] bg-[#151515] p-1.5">
-      <div className="mb-1 text-[7px] font-black text-white/40" style={{ fontFamily: "monospace", letterSpacing: "0.16em", textTransform: "uppercase" }}>{label}</div>
-      <div className="line-clamp-2 text-[10px] font-black uppercase leading-tight text-white">{value}</div>
+    <div
+      className={`min-h-[48px] border-2 bg-[#151515] p-1.5 ${
+        wide ? "col-span-2 border-[#fcee09]/70" : "border-[#202326]"
+      }`}
+    >
+      <div
+        className={`mb-1 text-[7px] font-black ${
+          wide ? "text-[#fcee09]" : "text-white/40"
+        }`}
+        style={{
+          fontFamily: "monospace",
+          letterSpacing: "0.16em",
+          textTransform: "uppercase",
+        }}
+      >
+        {label}
+      </div>
+      <div className="line-clamp-2 text-[10px] font-black uppercase leading-tight text-white">
+        {value}
+      </div>
     </div>
   );
 }
 
 function AgentFallbackIcon({ agentId, color }: { agentId: string; color: string }) {
-  if (agentId === "momentum") {
+  if (agentId === "agent-momentum") {
     return <Flame className="h-24 w-24" style={{ color }} />;
   }
 
-  if (agentId === "contrarian") {
+  if (agentId === "agent-contrarian") {
     return <Shield className="h-24 w-24" style={{ color }} />;
   }
 

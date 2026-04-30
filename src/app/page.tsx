@@ -8,43 +8,12 @@ import { EventSelectionSection } from "@/components/landing/EventSelectionSectio
 import { AgentSelectionSection } from "@/components/landing/AgentSelectionSection";
 import { BattlePreviewSection } from "@/components/landing/BattlePreviewSection";
 import { SectionTransition } from "@/components/landing/SectionTransition";
-import { MOCK_EVENTS, MOCK_AGENTS } from "@/lib/mocks/landing-demo-data";
+import { MOCK_EVENTS } from "@/lib/mocks/landing-demo-data";
+import { useLandingAgents } from "@/lib/landing/use-landing-agents";
 
 type ApiError = {
   error?: string;
 };
-
-type AgentPoolEntry = {
-  id: string;
-  identityKey: string;
-  name: string;
-  runtimeKey: string;
-};
-
-async function readAgentPool() {
-  const response = await fetch("/api/agents?limit=12", {
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    const payload = (await response.json().catch(() => null)) as ApiError | null;
-    throw new Error(payload?.error ?? "Failed to load agent pool.");
-  }
-
-  return (await response.json()) as AgentPoolEntry[];
-}
-
-function resolveAgentPoolId(
-  agentPool: AgentPoolEntry[],
-  landingAgent: (typeof MOCK_AGENTS)[number],
-) {
-  return agentPool.find(
-    (agent) =>
-      agent.name === landingAgent.name ||
-      agent.identityKey === `agent-${landingAgent.id}` ||
-      agent.runtimeKey === landingAgent.id,
-  )?.id;
-}
 
 async function createRound(input: { agentIds: string[]; eventId: string }) {
   const response = await fetch("/api/round", {
@@ -63,31 +32,40 @@ async function createRound(input: { agentIds: string[]; eventId: string }) {
 
 export default function HomePage() {
   const router = useRouter();
+  const {
+    agents,
+    errorMessage: agentErrorMessage,
+    isLoading: isLoadingAgents,
+  } = useLandingAgents();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isCreating, startCreateTransition] = useTransition();
 
   const [selectedEventId, setSelectedEventId] = useState<string>(MOCK_EVENTS[0].id);
-  const [selectedAgentId, setSelectedAgentId] = useState<string>(MOCK_AGENTS[0].id);
+  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
 
   const selectedEvent = MOCK_EVENTS.find(e => e.id === selectedEventId) || MOCK_EVENTS[0];
-  const selectedAgent = MOCK_AGENTS.find(a => a.id === selectedAgentId) || MOCK_AGENTS[0];
+  const effectiveSelectedAgentId = selectedAgentId ?? agents[0]?.id ?? null;
+  const selectedAgent =
+    agents.find((agent) => agent.id === effectiveSelectedAgentId) ??
+    agents[0] ??
+    null;
 
   function handleEnterArena() {
     setErrorMessage(null);
     startCreateTransition(async () => {
       try {
-        const agentPool = await readAgentPool();
-        const opponentAgent =
-          MOCK_AGENTS.find((agent) => agent.id !== selectedAgent.id) ?? MOCK_AGENTS[1];
-        const selectedAgentPoolId = resolveAgentPoolId(agentPool, selectedAgent);
-        const opponentAgentPoolId = resolveAgentPoolId(agentPool, opponentAgent);
+        if (!selectedAgent) {
+          throw new Error("Choose an arena agent before starting the duel.");
+        }
 
-        if (!selectedAgentPoolId || !opponentAgentPoolId) {
-          throw new Error("Selected arena agents are not available in the agent pool.");
+        const opponentAgent = agents.find((agent) => agent.id !== selectedAgent.id);
+
+        if (!opponentAgent) {
+          throw new Error("At least two arena agents are required to start a duel.");
         }
 
         await createRound({
-          agentIds: [selectedAgentPoolId, opponentAgentPoolId],
+          agentIds: [selectedAgent.id, opponentAgent.id],
           eventId: selectedEvent.id,
         });
         router.push("/round");
@@ -141,7 +119,10 @@ export default function HomePage() {
         <div className="acid-grid-overlay absolute inset-0 opacity-25" />
         <div className="relative z-10">
         <AgentSelectionSection 
-          selectedAgentId={selectedAgentId} 
+          agents={agents}
+          errorMessage={agentErrorMessage}
+          isLoading={isLoadingAgents}
+          selectedAgentId={effectiveSelectedAgentId} 
           onSelectAgent={setSelectedAgentId} 
         />
         </div>
@@ -158,6 +139,9 @@ export default function HomePage() {
         <div className="acid-grid-overlay absolute inset-0 opacity-25" />
         <div className="relative z-10">
         <BattlePreviewSection 
+          agents={agents}
+          errorMessage={agentErrorMessage}
+          isLoadingAgents={isLoadingAgents}
           selectedEvent={selectedEvent}
           selectedAgent={selectedAgent}
           onEnterArena={handleEnterArena}

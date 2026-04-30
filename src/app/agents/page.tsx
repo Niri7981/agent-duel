@@ -6,6 +6,9 @@ import { useEffect, useState, useTransition } from "react";
 type AgentPoolRiskProfile = "low" | "medium" | "high";
 
 type InternalAgentProfile = {
+  brainModel: string | null;
+  brainProvider: "anthropic" | "mock" | "openai" | "rules" | null;
+  brainSwappedAt: string | null;
   id: string;
   identityKey: string;
   runtimeKey: string;
@@ -83,6 +86,34 @@ function formatRankMovement(rankDelta: number) {
   }
 
   return "—";
+}
+
+function formatBrainProvider(provider: InternalAgentProfile["brainProvider"]) {
+  if (provider === "anthropic") {
+    return "Anthropic";
+  }
+
+  if (provider === "mock") {
+    return "Mock";
+  }
+
+  if (provider === "openai") {
+    return "OpenAI";
+  }
+
+  if (provider === "rules") {
+    return "Internal Rules";
+  }
+
+  return "Unknown";
+}
+
+function formatBrainSwappedAt(value: string | null) {
+  if (!value) {
+    return "Never swapped";
+  }
+
+  return `Last swapped ${new Date(value).toLocaleDateString()}`;
 }
 
 export default function AgentsPage() {
@@ -287,7 +318,7 @@ export default function AgentsPage() {
                   </div>
                 </div>
 
-                <div className="mt-6 grid gap-3 text-sm text-neutral-300 sm:grid-cols-2">
+                <div className="mt-6 grid gap-3 text-sm text-neutral-300 sm:grid-cols-2 lg:grid-cols-3">
                   <div className="rounded-2xl border border-neutral-800 bg-neutral-950/70 p-4">
                     <p className="text-[11px] uppercase tracking-[0.18em] text-neutral-500">
                       Identity
@@ -327,6 +358,19 @@ export default function AgentsPage() {
                     <p className="mt-2">Current: {agent.currentStreak}</p>
                     <p className="mt-1 text-neutral-500">
                       Best: {agent.bestStreak}
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-emerald-500/20 bg-neutral-950/70 p-4">
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-emerald-400">
+                      Active Brain
+                    </p>
+                    <p className="mt-2">
+                      {formatBrainProvider(agent.brainProvider)} ·{" "}
+                      {agent.brainModel ?? "—"}
+                    </p>
+                    <p className="mt-1 text-neutral-500">
+                      {formatBrainSwappedAt(agent.brainSwappedAt)}
                     </p>
                   </div>
                 </div>

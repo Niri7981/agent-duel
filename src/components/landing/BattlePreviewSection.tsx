@@ -1,18 +1,37 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { LandingAgent, LandingEvent, MOCK_AGENTS } from "@/lib/mocks/landing-demo-data";
+import type { LandingEvent } from "@/lib/mocks/landing-demo-data";
+import {
+  formatLandingBrain,
+  type LandingAgent,
+} from "@/lib/landing/use-landing-agents";
 import { ArrowRight, DatabaseZap, LockKeyhole, ShieldCheck, Swords, Trophy } from "lucide-react";
 
 interface BattlePreviewSectionProps {
+  agents: LandingAgent[];
+  errorMessage: string | null;
+  isLoadingAgents: boolean;
   selectedEvent: LandingEvent;
-  selectedAgent: LandingAgent;
+  selectedAgent: LandingAgent | null;
   onEnterArena: () => void;
   isCreating: boolean;
 }
 
-export function BattlePreviewSection({ selectedEvent, selectedAgent, onEnterArena, isCreating }: BattlePreviewSectionProps) {
-  const opponent = MOCK_AGENTS.find((agent) => agent.id !== selectedAgent.id) || MOCK_AGENTS[1];
+export function BattlePreviewSection({
+  agents,
+  errorMessage,
+  isCreating,
+  isLoadingAgents,
+  onEnterArena,
+  selectedAgent,
+  selectedEvent,
+}: BattlePreviewSectionProps) {
+  const opponent =
+    selectedAgent != null
+      ? agents.find((agent) => agent.id !== selectedAgent.id) ?? null
+      : null;
+  const canStart = selectedAgent != null && opponent != null && !isLoadingAgents;
 
   return (
     <section id="battle" className="relative min-h-screen overflow-hidden bg-[#fcee09] py-24 text-black md:py-28">
@@ -58,13 +77,27 @@ export function BattlePreviewSection({ selectedEvent, selectedAgent, onEnterAren
 
         <div className="border-[6px] border-black bg-[#050505] p-4 text-white shadow-[18px_18px_0_rgba(0,0,0,0.38)] md:p-7">
           <div className="grid gap-6 lg:grid-cols-[1fr_180px_1fr] lg:items-stretch">
-            <PreviewPanel label="Selected Agent" title={selectedAgent.name} accent={selectedAgent.accent}>
-              <div className="grid gap-3 sm:grid-cols-3">
-                <PreviewStat label="Rank" value={`#${selectedAgent.rank}`} />
-                <PreviewStat label="Win Rate" value={selectedAgent.winRate} />
-                <PreviewStat label="Streak" value={`${selectedAgent.streak}W`} />
-              </div>
-            </PreviewPanel>
+            {selectedAgent ? (
+              <PreviewPanel label="Selected Agent" title={selectedAgent.name} accent={selectedAgent.accent}>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <PreviewStat label="Rank" value={`#${selectedAgent.rank}`} />
+                  <PreviewStat label="Win Rate" value={selectedAgent.winRate} />
+                  <PreviewStat label="Streak" value={`${selectedAgent.streak}W`} />
+                  <PreviewStat label="Brain" value={formatLandingBrain(selectedAgent)} />
+                </div>
+              </PreviewPanel>
+            ) : (
+              <PreviewPanel label="Selected Agent" title="Agent Loading" accent="#fcee09">
+                <PreviewMessage
+                  text={
+                    errorMessage ??
+                    (isLoadingAgents
+                      ? "Reading live agent identities..."
+                      : "No public agent selected.")
+                  }
+                />
+              </PreviewPanel>
+            )}
 
             <div className="industrial-clip flex min-h-[180px] items-center justify-center border-4 border-black bg-[#fcee09] text-black shadow-[12px_12px_0_rgba(0,0,0,0.55)]">
               <div className="text-center">
@@ -74,13 +107,20 @@ export function BattlePreviewSection({ selectedEvent, selectedAgent, onEnterAren
               </div>
             </div>
 
-            <PreviewPanel label="Opponent Preview" title={opponent.name} accent={opponent.accent}>
-              <div className="grid gap-3 sm:grid-cols-3">
-                <PreviewStat label="Rank" value={`#${opponent.rank}`} />
-                <PreviewStat label="Win Rate" value={opponent.winRate} />
-                <PreviewStat label="Badge" value={opponent.badge} />
-              </div>
-            </PreviewPanel>
+            {opponent ? (
+              <PreviewPanel label="Opponent Preview" title={opponent.name} accent={opponent.accent}>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <PreviewStat label="Rank" value={`#${opponent.rank}`} />
+                  <PreviewStat label="Win Rate" value={opponent.winRate} />
+                  <PreviewStat label="Badge" value={opponent.badge} />
+                  <PreviewStat label="Brain" value={formatLandingBrain(opponent)} />
+                </div>
+              </PreviewPanel>
+            ) : (
+              <PreviewPanel label="Opponent Preview" title="Awaiting Rival" accent="#ffb000">
+                <PreviewMessage text="Need a second public agent to arm the round." />
+              </PreviewPanel>
+            )}
           </div>
 
           <motion.div
@@ -114,7 +154,7 @@ export function BattlePreviewSection({ selectedEvent, selectedAgent, onEnterAren
             <button
               type="button"
               onClick={onEnterArena}
-              disabled={isCreating}
+              disabled={isCreating || !canStart}
               className="industrial-clip group relative overflow-hidden border-4 border-[#fcee09] bg-[#fcee09] px-10 py-6 text-sm font-black uppercase tracking-[0.3em] text-black shadow-[10px_10px_0_rgba(0,0,0,0.7)] transition-transform hover:-translate-y-1 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <span className="relative z-10 flex items-center justify-center gap-3">
@@ -183,6 +223,14 @@ function PreviewStat({ label, value }: { label: string; value: string }) {
     <div className="border-2 border-[#202326] bg-[#151515] p-3">
       <div className="mb-1 text-[8px] font-black text-white/40" style={{ fontFamily: "monospace", letterSpacing: "0.22em", textTransform: "uppercase" }}>{label}</div>
       <div className="text-sm font-black uppercase text-white">{value}</div>
+    </div>
+  );
+}
+
+function PreviewMessage({ text }: { text: string }) {
+  return (
+    <div className="border-2 border-[#202326] bg-[#151515] p-4 text-xs font-black uppercase tracking-[0.18em] text-white/70">
+      {text}
     </div>
   );
 }
