@@ -1,7 +1,7 @@
 "use client";
 
 import { RoundAction } from "@/lib/types/action";
-import { Clock, Crosshair } from "lucide-react";
+import { Clock, Crosshair, Workflow } from "lucide-react";
 
 interface BattleActionCardProps {
   action: RoundAction;
@@ -42,6 +42,30 @@ export function BattleActionCard({ action }: BattleActionCardProps) {
       <p className="mt-4 line-clamp-2 text-[11px] font-bold uppercase leading-relaxed tracking-wide text-neutral-400">
         {action.reason}
       </p>
+
+      {action.trace.length > 0 ? (
+        <div className="mt-4 border-t-2 border-[#202326] pt-3">
+          <div className="mb-2 flex items-center gap-2 font-mono text-[8px] font-black uppercase tracking-[0.2em] text-neutral-500">
+            <Workflow className="h-3 w-3" />
+            Runtime Trace
+          </div>
+          <ol className="space-y-2">
+            {action.trace.slice(0, 3).map((step) => (
+              <li key={step.id} className="grid grid-cols-[auto_1fr] gap-2">
+                <span className="mt-0.5 h-2 w-2 border border-black bg-[#fcee09]" />
+                <div className="min-w-0">
+                  <div className="font-mono text-[8px] font-black uppercase tracking-[0.16em] text-[#00eaff]">
+                    {step.phase} / {step.title}
+                  </div>
+                  <p className="mt-0.5 line-clamp-2 text-[10px] font-bold uppercase leading-relaxed text-neutral-500">
+                    {step.detail}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+      ) : null}
     </article>
   );
 }
@@ -63,6 +87,7 @@ export function BattleActionTimeline({ actions }: BattleActionTimelineProps) {
             reason: "Settlement pending.",
             side: "yes" as const,
             sizeUsd: 0,
+            trace: [],
           },
         ];
 

@@ -8,6 +8,7 @@ import {
   ShieldCheck,
   Trophy,
   User,
+  Workflow,
   Zap,
 } from "lucide-react";
 
@@ -251,6 +252,37 @@ export default async function BattleDetailPage({
                           {participant.reason ?? "No recorded reason yet."}
                         </p>
                       </div>
+
+                      {participant.trace.length > 0 ? (
+                        <div className="mt-4 border-[3px] border-[#202326] bg-[#111111] p-4">
+                          <div className="flex items-center gap-2 font-mono text-[8px] font-black uppercase tracking-[0.2em] text-neutral-400">
+                            <Workflow className="h-3.5 w-3.5" />
+                            Runtime Trace
+                          </div>
+                          <ol className="mt-3 space-y-3">
+                            {participant.trace.map((step) => (
+                              <li
+                                key={step.id}
+                                className="grid grid-cols-[auto_1fr] gap-3"
+                              >
+                                <span
+                                  className="mt-1 flex h-5 w-5 items-center justify-center border-2 border-black bg-[#fcee09] font-mono text-[8px] font-black text-black"
+                                >
+                                  {step.stepIndex + 1}
+                                </span>
+                                <div className="min-w-0">
+                                  <div className="font-mono text-[8px] font-black uppercase tracking-[0.18em]" style={{ color: accent }}>
+                                    {step.phase} / {step.title}
+                                  </div>
+                                  <p className="mt-1 text-xs font-bold uppercase leading-relaxed text-neutral-400">
+                                    {step.detail}
+                                  </p>
+                                </div>
+                              </li>
+                            ))}
+                          </ol>
+                        </div>
+                      ) : null}
                     </article>
                   );
                 })}
