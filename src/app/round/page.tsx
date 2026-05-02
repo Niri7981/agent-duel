@@ -63,6 +63,11 @@ const PROOF_PAYLOAD_KEYS = [
   "reputationEffects",
 ];
 
+const FORCE_BLACK_TEXT_STYLE = {
+  color: "#050505",
+  WebkitTextFillColor: "#050505",
+};
+
 async function readRound() {
   const response = await fetch("/api/round", {
     cache: "no-store",
@@ -471,10 +476,16 @@ export default function RoundPage() {
     return (
       <div
         className="fixed inset-0 z-50 flex h-screen w-screen flex-col items-center justify-center text-black"
-        style={{ background: "#fcee09", minHeight: "100vh" }}
+        style={{
+          background: "#fcee09",
+          minHeight: "100vh",
+          ...FORCE_BLACK_TEXT_STYLE,
+        }}
       >
-        <Loader2 className="h-12 w-12 animate-spin" />
-        <p className="mt-4 font-mono font-black uppercase tracking-[0.4em]">Syncing Arena</p>
+        <Loader2 className="h-12 w-12 animate-spin" style={FORCE_BLACK_TEXT_STYLE} />
+        <p className="mt-4 font-mono font-black uppercase tracking-[0.4em]" style={FORCE_BLACK_TEXT_STYLE}>
+          Syncing Arena
+        </p>
       </div>
     );
   }
@@ -483,10 +494,21 @@ export default function RoundPage() {
     return (
       <main
         className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden p-6 text-black"
-        style={{ backgroundColor: "#fcee09" }}
+        style={{ backgroundColor: "#fcee09", ...FORCE_BLACK_TEXT_STYLE }}
       >
+        <style>{`
+          .round-standby-black-text :where(h1, h2, h3, h4, h5, h6, p, a, button, span, div, li, small, strong, em, label) {
+            color: #050505 !important;
+            -webkit-text-fill-color: #050505 !important;
+          }
+
+          .round-standby-black-text svg {
+            color: #050505 !important;
+            stroke: #050505 !important;
+          }
+        `}</style>
         <div className="acid-grid-overlay absolute inset-0 opacity-30" />
-        <div className="industrial-clip relative z-10 w-full max-w-2xl border-[6px] border-black bg-[#050505] p-10 text-center text-white">
+        <div className="round-standby-black-text industrial-clip relative z-10 w-full max-w-2xl border-[6px] border-black bg-[#050505] p-10 text-center text-black">
            <Zap className="mx-auto mb-6 h-16 w-16 text-[#fcee09]" />
            <h2 className="mb-4 font-black uppercase italic leading-none tracking-tight text-6xl">Arena Standby</h2>
            <button
@@ -508,12 +530,29 @@ export default function RoundPage() {
 
   const leftAgentData = findAgentRoundData(round, 0);
   const rightAgentData = findAgentRoundData(round, 1);
+  const losingAgentName =
+    round.status === "settled"
+      ? [leftAgentData?.agent, rightAgentData?.agent]
+          .find((agent) => agent?.id !== round.settlement.winnerAgentId)
+          ?.name
+      : null;
 
   return (
     <div
-      className="relative min-h-screen overflow-x-hidden text-black selection:bg-black selection:text-[#fcee09]"
+      className="round-black-text relative min-h-screen overflow-x-hidden text-black selection:bg-black selection:text-[#fcee09]"
       style={{ backgroundColor: "#fcee09" }}
     >
+      <style>{`
+        .round-black-text :where(h1, h2, h3, h4, h5, h6, p, a, button, span, div, li, small, strong, em, label) {
+          color: #050505 !important;
+          -webkit-text-fill-color: #050505 !important;
+        }
+
+        .round-black-text svg {
+          color: #050505 !important;
+          stroke: #050505 !important;
+        }
+      `}</style>
       <div className="pointer-events-none fixed inset-0 z-0">
         <div className="acid-grid-overlay absolute inset-0 opacity-30" />
         <div className="absolute left-[-12%] top-20 h-40 w-[58%] -skew-x-12 border-y-[6px] border-black bg-[#d8c900]/70" />
@@ -577,17 +616,27 @@ export default function RoundPage() {
 
           {round.status === "settled" && (
             <div
-              className="mb-4 border-[6px] border-black px-4 py-4 text-center"
-              style={{ backgroundColor: "#050505", color: "#fcee09" }}
+              className="mb-4 grid gap-4 border-[6px] border-black px-4 py-4 text-black md:grid-cols-[1fr_auto]"
+              style={{ backgroundColor: "#fcee09", color: "#050505" }}
             >
-              <div className="font-mono text-[9px] font-black uppercase tracking-[0.24em]">
-                Battle Result
+              <div className="text-left">
+                <div className="font-mono text-[9px] font-black uppercase tracking-[0.24em]">
+                  Winner Declared
+                </div>
+                <div
+                  className="mt-1 font-black uppercase italic leading-none tracking-tight text-[clamp(36px,6vw,96px)]"
+                  style={{ color: round.settlement.winnerAgentId.includes("momentum") ? "#ff1f2d" : "#39ff14" }}
+                >
+                  {round.settlement.winnerName} Wins
+                </div>
+                <div className="mt-3 font-mono text-[10px] font-black uppercase tracking-[0.2em]">
+                  {losingAgentName ? `Defeated ${losingAgentName}` : "Arena verdict sealed"}
+                </div>
               </div>
-              <div
-                className="mt-1 font-black uppercase italic leading-none tracking-tight text-[clamp(36px,6vw,96px)]"
-                style={{ color: round.settlement.winnerAgentId.includes("momentum") ? "#ff1f2d" : "#39ff14" }}
-              >
-                {round.settlement.winnerName} Wins
+              <div className="grid grid-cols-3 gap-2 text-center md:min-w-[420px]">
+                <VerdictStat label="Side" value={round.settlement.winningSide.toUpperCase()} />
+                <VerdictStat label="PnL" value={`+${round.settlement.pnlUsd.toFixed(2)}`} />
+                <VerdictStat label="Status" value="Rank Updated" />
               </div>
             </div>
           )}
@@ -628,7 +677,11 @@ export default function RoundPage() {
             roundStatus={round.status}
           />
 
-          <BattleActionTimeline actions={round.actions} />
+          <BattleActionTimeline
+            actions={round.actions}
+            roundStatus={round.status}
+            winnerName={round.settlement.winnerName}
+          />
 
           <SettlementPanel
             settlement={round.settlement}
@@ -669,6 +722,19 @@ function VersusColumn() {
         style={{ fontSize: "clamp(76px, 11vw, 170px)" }}
       >
         VS
+      </div>
+    </div>
+  );
+}
+
+function VerdictStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="border-[3px] border-black bg-[#fcee09] p-3">
+      <div className="font-mono text-[8px] font-black uppercase tracking-[0.2em]">
+        {label}
+      </div>
+      <div className="mt-1 font-black uppercase italic leading-none text-xl">
+        {value}
       </div>
     </div>
   );

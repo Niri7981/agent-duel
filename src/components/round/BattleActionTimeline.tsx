@@ -1,7 +1,7 @@
 "use client";
 
 import { RoundAction } from "@/lib/types/action";
-import { Clock, Crosshair, Workflow } from "lucide-react";
+import { Brain, Clock, Crosshair, MessageSquareText, Workflow } from "lucide-react";
 
 interface BattleActionCardProps {
   action: RoundAction;
@@ -11,6 +11,10 @@ export function BattleActionCard({ action }: BattleActionCardProps) {
   const isMomentum = action.agentId === "momentum" || action.agentId === "agent-momentum";
   const themeColor = isMomentum ? "#ff1f2d" : "#39ff14";
   const sideColor = action.side === "yes" ? "#39ff14" : "#ff1f2d";
+  const runtimeLabel =
+    action.runtime?.executionProvider && action.runtime.executionModel
+      ? `${action.runtime.executionProvider} / ${action.runtime.executionModel}`
+      : "arena brain";
 
   return (
     <article
@@ -39,9 +43,21 @@ export function BattleActionCard({ action }: BattleActionCardProps) {
         </div>
       </div>
 
-      <p className="mt-4 line-clamp-2 text-[11px] font-bold uppercase leading-relaxed tracking-wide text-neutral-400">
-        {action.reason}
-      </p>
+      <div className="mt-4 border-[3px] border-[#fcee09] bg-black p-3">
+        <div className="flex items-center justify-between gap-3 border-b-2 border-[#fcee09] pb-2 font-mono text-[8px] font-black uppercase tracking-[0.18em] text-[#fcee09]">
+          <span className="flex items-center gap-2">
+            <MessageSquareText className="h-3.5 w-3.5" />
+            Model Output
+          </span>
+          <span className="flex min-w-0 items-center gap-1 truncate text-[#00eaff]">
+            <Brain className="h-3 w-3 shrink-0" />
+            <span className="truncate">{runtimeLabel}</span>
+          </span>
+        </div>
+        <p className="mt-3 line-clamp-5 text-[11px] font-black uppercase leading-relaxed tracking-wide text-white">
+          {action.reason}
+        </p>
+      </div>
 
       {action.trace.length > 0 ? (
         <div className="mt-4 border-t-2 border-[#202326] pt-3">
@@ -72,9 +88,15 @@ export function BattleActionCard({ action }: BattleActionCardProps) {
 
 interface BattleActionTimelineProps {
   actions: RoundAction[];
+  roundStatus?: "live" | "settled";
+  winnerName?: string;
 }
 
-export function BattleActionTimeline({ actions }: BattleActionTimelineProps) {
+export function BattleActionTimeline({
+  actions,
+  roundStatus = "live",
+  winnerName,
+}: BattleActionTimelineProps) {
   const timelineActions =
     actions.length > 0
       ? actions
@@ -117,10 +139,12 @@ export function BattleActionTimeline({ actions }: BattleActionTimelineProps) {
             Oracle
           </div>
           <div className="mt-3 font-black uppercase italic leading-none text-3xl">
-            Settlement Pending
+            {roundStatus === "settled" ? "Winner Declared" : "Settlement Pending"}
           </div>
           <div className="mt-4 text-sm font-black uppercase tracking-wide text-neutral-400">
-            Record will be anchored
+            {roundStatus === "settled"
+              ? `${winnerName ?? "Winner"} proof ready`
+              : "Record will be anchored"}
           </div>
         </article>
       </div>

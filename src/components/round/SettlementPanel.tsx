@@ -327,8 +327,9 @@ function ReputationImpact({
                   key={agent.id}
                   className="grid grid-cols-[52px_1fr_62px_72px] items-center gap-2 border-[3px] border-black px-3 py-2 font-black uppercase"
                   style={{
-                    backgroundColor: isWinner ? "#050505" : "#fcee09",
-                    color: isWinner ? "#fcee09" : "#050505",
+                    backgroundColor: "#fcee09",
+                    boxShadow: isWinner ? "inset 0 0 0 4px #050505" : undefined,
+                    color: "#050505",
                   }}
                 >
                   <span className="font-mono text-[10px] tracking-[0.16em]">

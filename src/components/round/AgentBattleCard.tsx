@@ -3,7 +3,8 @@
 import { AgentSummary } from "@/lib/types/agent";
 import { RoundAction } from "@/lib/types/action";
 import { BankrollBalance } from "@/lib/types/round";
-import { Brain, Radar, Shield, Swords, TrendingUp } from "lucide-react";
+import { getLandingAgentVisual } from "@/lib/landing/agent-visual-config";
+import { Brain, MessageSquareText, Radar, Shield, Swords, TrendingUp } from "lucide-react";
 
 interface AgentBattleCardProps {
   agent: AgentSummary;
@@ -33,6 +34,17 @@ function formatBrainLabel(brain: AgentSummary["brain"]) {
   return `${providerLabel} • ${brain.model}`;
 }
 
+function formatRuntimeLabel(action: RoundAction | undefined, brain: AgentSummary["brain"]) {
+  const provider = action?.runtime?.executionProvider;
+  const model = action?.runtime?.executionModel;
+
+  if (provider && model) {
+    return `${provider} / ${model}`;
+  }
+
+  return formatBrainLabel(brain);
+}
+
 export function AgentBattleCard({ agent, action, balance, side }: AgentBattleCardProps) {
   const isMomentum = agent.id === "momentum" || agent.id === "agent-momentum";
   const isContrarian = agent.id === "contrarian" || agent.id === "agent-contrarian";
@@ -40,11 +52,8 @@ export function AgentBattleCard({ agent, action, balance, side }: AgentBattleCar
   const archetype = isMomentum ? "AGGRO" : isContrarian ? "SLY" : "SIGNAL";
   
   const Icon = isMomentum ? TrendingUp : isContrarian ? Shield : Radar;
-  const imageSrc = isMomentum 
-    ? "/agents/momentum-agent-card.png" 
-    : isContrarian
-      ? "/agents/contrarian-agent-card.png" 
-      : null;
+  const imageSrc = getRoundAgentImage(agent.id);
+  const runtimeLabel = formatRuntimeLabel(action, agent.brain);
 
   return (
     <article
@@ -115,6 +124,25 @@ export function AgentBattleCard({ agent, action, balance, side }: AgentBattleCar
           <BattleStat label="Status" value={action ? "Ready" : "Loading"} />
         </div>
 
+        {action ? (
+          <div className="mx-auto w-full max-w-[320px] px-1.5 pb-2 md:px-5 md:pb-4">
+            <div className="border-[2px] border-black bg-[#fcee09] p-2 text-black md:border-[3px] md:p-3">
+              <div className="flex items-center justify-between gap-2 border-b-[2px] border-black pb-1.5 font-mono text-[7px] font-black uppercase tracking-[0.12em] md:text-[8px] md:tracking-[0.2em]">
+                <span className="flex items-center gap-1.5">
+                  <MessageSquareText className="h-3 w-3 md:h-4 md:w-4" />
+                  Brain Reason
+                </span>
+                <span className="truncate" style={{ color: themeColor }}>
+                  {runtimeLabel}
+                </span>
+              </div>
+              <p className="mt-2 line-clamp-4 text-[9px] font-black uppercase leading-relaxed tracking-wide text-black md:text-[11px]">
+                {action.reason}
+              </p>
+            </div>
+          </div>
+        ) : null}
+
         <div className="mt-auto flex items-center justify-between gap-1 border-t-[3px] border-black bg-[#111111] px-1.5 py-2 md:gap-2 md:border-t-[4px] md:px-5 md:py-4">
           <div className="flex items-center gap-1 font-mono text-[7px] font-black uppercase tracking-[0.14em] md:gap-2 md:text-[9px] md:tracking-[0.2em]" style={{ color: themeColor }}>
             <Swords className="h-3 w-3 md:h-4 md:w-4" />
@@ -127,6 +155,20 @@ export function AgentBattleCard({ agent, action, balance, side }: AgentBattleCar
       </div>
     </article>
   );
+}
+
+function getRoundAgentImage(agentId: string) {
+  const identityKeyByLegacyId: Record<string, string> = {
+    contrarian: "agent-contrarian",
+    macro: "agent-macro",
+    momentum: "agent-momentum",
+    news: "agent-news",
+    quant: "agent-quant",
+  };
+  const identityKey = identityKeyByLegacyId[agentId] ?? agentId;
+  const visual = getLandingAgentVisual(identityKey);
+
+  return visual.image || null;
 }
 
 function BattleStat({
