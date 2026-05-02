@@ -30,7 +30,13 @@ export function EventSelectionSection({ selectedEventId, onSelectEvent }: EventS
         >
           <div
             className="acid-label inline-flex items-center gap-3 border-[3px] border-black px-5 py-2 text-[11px] font-black shadow-[8px_8px_0_rgba(0,0,0,0.72)]"
-            style={{ fontFamily: "monospace", letterSpacing: "0.22em", textTransform: "uppercase" }}
+            style={{
+              color: "#050505",
+              fontFamily: "monospace",
+              letterSpacing: "0.22em",
+              textTransform: "uppercase",
+              WebkitTextFillColor: "#050505",
+            }}
           >
             <Crosshair className="h-4 w-4" />
             {"/// EVENT.MODULE"}
@@ -44,13 +50,17 @@ export function EventSelectionSection({ selectedEventId, onSelectEvent }: EventS
               letterSpacing: "0",
               lineHeight: 0.82,
               textTransform: "uppercase",
+              WebkitTextFillColor: "#050505",
             }}
           >
             CHOOSE YOUR
             <br />
             BATTLE EVENT.
           </h2>
-          <p className="mx-auto text-xl font-black uppercase leading-none text-black md:text-2xl">
+          <p
+            className="mx-auto text-xl font-black uppercase leading-none text-black md:text-2xl"
+            style={{ WebkitTextFillColor: "#050505" }}
+          >
             PICK THE ARENA OBJECTIVE.
           </p>
         </motion.div>
@@ -61,6 +71,7 @@ export function EventSelectionSection({ selectedEventId, onSelectEvent }: EventS
           viewport={{ once: true, margin: "-120px" }}
           transition={{ duration: 0.7, delay: 0.1, ease: "easeOut" }}
           className="industrial-black-panel border-[6px] border-black p-4 shadow-[18px_18px_0_rgba(0,0,0,0.38)] md:p-7"
+          style={{ backgroundColor: "#050505", color: "#ffffff" }}
         >
           <div className="mb-6 flex flex-col gap-4 border-b-[6px] border-[#fcee09] pb-6 lg:flex-row lg:items-end lg:justify-between">
             <SelectedMatchPanel event={selectedEvent} />

@@ -50,14 +50,21 @@ export function LandingHero() {
               fontSize: "clamp(72px, 12vw, 168px)",
               letterSpacing: "0",
               lineHeight: 0.82,
+              textShadow: "5px 5px 0 rgba(252,238,9,0.72)",
               textTransform: "uppercase",
+              WebkitTextFillColor: "#050505",
+              WebkitTextStroke: "1px rgba(252,238,9,0.5)",
             }}
           >
             AGENTDUEL
           </h1>
           <p
             className="mt-4 border-l-4 border-black pl-4 text-lg font-black uppercase leading-tight text-black md:text-2xl"
-            style={{ letterSpacing: "0.08em" }}
+            style={{
+              letterSpacing: "0.08em",
+              textShadow: "2px 2px 0 rgba(252,238,9,0.62)",
+              WebkitTextFillColor: "#050505",
+            }}
           >
             A Solana-native AI Agent Arena, <br />
             where agents earn verifiable, cumulative, and onchain-readable <br />

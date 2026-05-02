@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import Link from "next/link";
 import {
   formatLandingBrain,
   type LandingAgent,
@@ -13,28 +12,37 @@ interface AgentCardProps {
   agent: LandingAgent;
   isSelected: boolean;
   onSelect: (id: string) => void;
+  selectedSlot?: number | null;
 }
 
-export function AgentCard({ agent, isSelected, onSelect }: AgentCardProps) {
+export function AgentCard({
+  agent,
+  isSelected,
+  onSelect,
+  selectedSlot,
+}: AgentCardProps) {
   return (
-    <AgentCardFront agent={agent} isSelected={isSelected} onSelect={onSelect} />
+    <AgentCardFront
+      agent={agent}
+      isSelected={isSelected}
+      onSelect={onSelect}
+      selectedSlot={selectedSlot}
+    />
   );
 }
 
-export function AgentCardFront({ agent, isSelected, onSelect }: AgentCardProps) {
+export function AgentCardFront({
+  agent,
+  isSelected,
+  onSelect,
+  selectedSlot,
+}: AgentCardProps) {
   const [imageLoaded, setImageLoaded] = useState(true);
 
   return (
-    <motion.div
-      role="button"
-      tabIndex={0}
+    <motion.button
+      type="button"
       onClick={() => onSelect(agent.id)}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          onSelect(agent.id);
-        }
-      }}
       animate={{
         scale: isSelected ? 1.08 : 0.96,
         y: isSelected ? -16 : 0,
@@ -50,13 +58,16 @@ export function AgentCardFront({ agent, isSelected, onSelect }: AgentCardProps) 
         stiffness: 260,
         damping: 20,
       }}
-      className="cursor-pointer outline-none"
+      className="block cursor-pointer border-0 bg-transparent p-0 text-left outline-none"
       style={{ zIndex: isSelected ? 20 : 1 }}
     >
       <article
         style={{
-          width: "clamp(280px, 31vw, 360px)",
+          backgroundColor: "#fcee09",
+          color: "#050505",
           height: "clamp(520px, 58vw, 650px)",
+          width: "clamp(280px, 31vw, 360px)",
+          WebkitTextFillColor: "#050505",
         }}
         className={`industrial-clip relative overflow-hidden text-left shadow-[10px_10px_0_rgba(0,0,0,0.72)] outline-none transition-all duration-300 ${
           isSelected
@@ -109,26 +120,27 @@ export function AgentCardFront({ agent, isSelected, onSelect }: AgentCardProps) 
             </div>
           </div>
 
-          <div className="flex min-h-0 flex-1 flex-col justify-between space-y-2 bg-[#050505] p-4">
+          <div
+            className="flex min-h-0 flex-1 flex-col justify-between space-y-2 bg-[#fcee09] p-4 text-black"
+            style={{
+              backgroundColor: "#fcee09",
+              color: "#050505",
+              WebkitTextFillColor: "#050505",
+            }}
+          >
             <div>
-              <Link
-                href={`/agents/${agent.id}`}
-                className="relative z-20 inline-block outline-none transition hover:translate-x-1 focus-visible:ring-2 focus-visible:ring-[#fcee09]"
-                onClick={(event) => event.stopPropagation()}
-                onKeyDown={(event) => event.stopPropagation()}
-              >
               <h3
-                className="font-black italic leading-none text-white"
+                className="font-black italic leading-none text-black"
                 style={{
                   fontFamily: "Impact, Haettenschweiler, Arial Black, sans-serif",
                   fontSize: "clamp(34px, 3.8vw, 52px)",
                   textTransform: "uppercase",
+                  WebkitTextFillColor: "#050505",
                 }}
               >
                 {agent.codename}
               </h3>
-              </Link>
-              <p className="mt-1.5 text-lg font-black uppercase leading-none" style={{ color: agent.accent }}>
+              <p className="mt-1.5 text-lg font-black uppercase leading-none text-black" style={{ WebkitTextFillColor: "#050505" }}>
                 {agent.archetype}
               </p>
             </div>
@@ -143,15 +155,13 @@ export function AgentCardFront({ agent, isSelected, onSelect }: AgentCardProps) 
 
             <div className="flex items-center justify-between border-t-2 border-[#202326] pt-3">
               <div
-                className={`flex items-center gap-2 text-[10px] font-black transition-colors ${
-                  isSelected ? "text-[#fcee09]" : "text-white/50"
-                }`}
-                style={{ fontFamily: "monospace", letterSpacing: "0.18em", textTransform: "uppercase" }}
+                className="flex items-center gap-2 text-[10px] font-black text-black transition-colors"
+                style={{ fontFamily: "monospace", letterSpacing: "0.18em", textTransform: "uppercase", WebkitTextFillColor: "#050505" }}
               >
                 {isSelected ? (
                   <>
                     <Lock className="h-4 w-4" />
-                    LOCKED IN
+                    {selectedSlot === 2 ? "LOCKED B" : "LOCKED A"}
                   </>
                 ) : (
                   <>
@@ -162,13 +172,13 @@ export function AgentCardFront({ agent, isSelected, onSelect }: AgentCardProps) 
               </div>
               <Zap
                 className={`h-5 w-5 transition-transform duration-500 ${isSelected ? "scale-125 rotate-12" : ""}`}
-                style={{ color: isSelected ? "#fcee09" : agent.accent }}
+                style={{ color: "#050505" }}
               />
             </div>
           </div>
         </div>
       </article>
-    </motion.div>
+    </motion.button>
   );
 }
 
@@ -183,23 +193,23 @@ function AgentStat({
 }) {
   return (
     <div
-      className={`min-h-[48px] border-2 bg-[#151515] p-1.5 ${
-        wide ? "col-span-2 border-[#fcee09]/70" : "border-[#202326]"
+      className={`min-h-[48px] border-2 bg-[#fcee09] p-1.5 text-black ${
+        wide ? "col-span-2 border-black" : "border-black"
       }`}
+      style={{ backgroundColor: "#fcee09", color: "#050505", WebkitTextFillColor: "#050505" }}
     >
       <div
-        className={`mb-1 text-[7px] font-black ${
-          wide ? "text-[#fcee09]" : "text-white/40"
-        }`}
+        className="mb-1 text-[7px] font-black text-black"
         style={{
           fontFamily: "monospace",
           letterSpacing: "0.16em",
           textTransform: "uppercase",
+          WebkitTextFillColor: "#050505",
         }}
       >
         {label}
       </div>
-      <div className="line-clamp-2 text-[10px] font-black uppercase leading-tight text-white">
+      <div className="line-clamp-2 text-[10px] font-black uppercase leading-tight text-black">
         {value}
       </div>
     </div>

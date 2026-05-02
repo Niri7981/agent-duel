@@ -41,31 +41,37 @@ export default function HomePage() {
   const [isCreating, startCreateTransition] = useTransition();
 
   const [selectedEventId, setSelectedEventId] = useState<string>(MOCK_EVENTS[0].id);
-  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
+  const [selectedAgentIds, setSelectedAgentIds] = useState<string[]>([]);
 
   const selectedEvent = MOCK_EVENTS.find(e => e.id === selectedEventId) || MOCK_EVENTS[0];
-  const effectiveSelectedAgentId = selectedAgentId ?? agents[0]?.id ?? null;
-  const selectedAgent =
-    agents.find((agent) => agent.id === effectiveSelectedAgentId) ??
-    agents[0] ??
-    null;
+  const selectedAgents = selectedAgentIds
+    .map((agentId) => agents.find((agent) => agent.id === agentId))
+    .filter((agent): agent is NonNullable<typeof agent> => Boolean(agent));
+
+  function handleSelectAgent(agentId: string) {
+    setSelectedAgentIds((currentAgentIds) => {
+      if (currentAgentIds.includes(agentId)) {
+        return currentAgentIds.filter((currentAgentId) => currentAgentId !== agentId);
+      }
+
+      if (currentAgentIds.length < 2) {
+        return [...currentAgentIds, agentId];
+      }
+
+      return [currentAgentIds[0], agentId];
+    });
+  }
 
   function handleEnterArena() {
     setErrorMessage(null);
     startCreateTransition(async () => {
       try {
-        if (!selectedAgent) {
-          throw new Error("Choose an arena agent before starting the duel.");
-        }
-
-        const opponentAgent = agents.find((agent) => agent.id !== selectedAgent.id);
-
-        if (!opponentAgent) {
-          throw new Error("At least two arena agents are required to start a duel.");
+        if (selectedAgents.length !== 2) {
+          throw new Error("Choose two arena agents before starting the duel.");
         }
 
         await createRound({
-          agentIds: [selectedAgent.id, opponentAgent.id],
+          agentIds: selectedAgents.map((agent) => agent.id),
           eventId: selectedEvent.id,
         });
         router.push("/round");
@@ -122,8 +128,8 @@ export default function HomePage() {
           agents={agents}
           errorMessage={agentErrorMessage}
           isLoading={isLoadingAgents}
-          selectedAgentId={effectiveSelectedAgentId} 
-          onSelectAgent={setSelectedAgentId} 
+          selectedAgentIds={selectedAgentIds}
+          onSelectAgent={handleSelectAgent}
         />
         </div>
       </section>
@@ -139,11 +145,10 @@ export default function HomePage() {
         <div className="acid-grid-overlay absolute inset-0 opacity-25" />
         <div className="relative z-10">
         <BattlePreviewSection 
-          agents={agents}
           errorMessage={agentErrorMessage}
           isLoadingAgents={isLoadingAgents}
           selectedEvent={selectedEvent}
-          selectedAgent={selectedAgent}
+          selectedAgents={selectedAgents}
           onEnterArena={handleEnterArena}
           isCreating={isCreating}
         />

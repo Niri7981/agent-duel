@@ -9,29 +9,25 @@ import {
 import { ArrowRight, DatabaseZap, LockKeyhole, ShieldCheck, Swords, Trophy } from "lucide-react";
 
 interface BattlePreviewSectionProps {
-  agents: LandingAgent[];
   errorMessage: string | null;
   isLoadingAgents: boolean;
   selectedEvent: LandingEvent;
-  selectedAgent: LandingAgent | null;
+  selectedAgents: LandingAgent[];
   onEnterArena: () => void;
   isCreating: boolean;
 }
 
 export function BattlePreviewSection({
-  agents,
   errorMessage,
   isCreating,
   isLoadingAgents,
   onEnterArena,
-  selectedAgent,
+  selectedAgents,
   selectedEvent,
 }: BattlePreviewSectionProps) {
-  const opponent =
-    selectedAgent != null
-      ? agents.find((agent) => agent.id !== selectedAgent.id) ?? null
-      : null;
-  const canStart = selectedAgent != null && opponent != null && !isLoadingAgents;
+  const agentA = selectedAgents[0] ?? null;
+  const agentB = selectedAgents[1] ?? null;
+  const canStart = agentA != null && agentB != null && !isLoadingAgents;
 
   return (
     <section id="battle" className="relative min-h-screen overflow-hidden bg-[#fcee09] py-24 text-black md:py-28">
@@ -51,7 +47,13 @@ export function BattlePreviewSection({
           <div className="flex flex-col items-center">
             <div
               className="mb-5 inline-flex items-center gap-3 border-2 border-black bg-[#fcee09] px-4 py-2 text-[11px] font-black text-black shadow-[8px_8px_0_rgba(0,0,0,0.35)]"
-              style={{ fontFamily: "monospace", letterSpacing: "0.22em", textTransform: "uppercase" }}
+              style={{
+                color: "#050505",
+                fontFamily: "monospace",
+                letterSpacing: "0.22em",
+                textTransform: "uppercase",
+                WebkitTextFillColor: "#050505",
+              }}
             >
               <Swords className="h-4 w-4" />
               {"/// BATTLE.MODULE"}
@@ -65,6 +67,7 @@ export function BattlePreviewSection({
                 letterSpacing: "0",
                 lineHeight: 0.82,
                 textTransform: "uppercase",
+                WebkitTextFillColor: "#050505",
               }}
             >
               ENTER THE
@@ -75,50 +78,60 @@ export function BattlePreviewSection({
           <ProofModule />
         </motion.div>
 
-        <div className="border-[6px] border-black bg-[#050505] p-4 text-white shadow-[18px_18px_0_rgba(0,0,0,0.38)] md:p-7">
+        <div
+          className="border-[6px] border-black bg-[#fcee09] p-4 text-black shadow-[18px_18px_0_rgba(0,0,0,0.38)] md:p-7"
+          style={{
+            backgroundColor: "#fcee09",
+            color: "#050505",
+            WebkitTextFillColor: "#050505",
+          }}
+        >
           <div className="grid gap-6 lg:grid-cols-[1fr_180px_1fr] lg:items-stretch">
-            {selectedAgent ? (
-              <PreviewPanel label="Selected Agent" title={selectedAgent.name} accent={selectedAgent.accent}>
+            {agentA ? (
+              <PreviewPanel label="Agent A Locked" title={agentA.name} accent={agentA.accent}>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <PreviewStat label="Rank" value={`#${selectedAgent.rank}`} />
-                  <PreviewStat label="Win Rate" value={selectedAgent.winRate} />
-                  <PreviewStat label="Streak" value={`${selectedAgent.streak}W`} />
-                  <PreviewStat label="Brain" value={formatLandingBrain(selectedAgent)} />
+                  <PreviewStat label="Rank" value={`#${agentA.rank}`} />
+                  <PreviewStat label="Win Rate" value={agentA.winRate} />
+                  <PreviewStat label="Streak" value={`${agentA.streak}W`} />
+                  <PreviewStat label="Brain" value={formatLandingBrain(agentA)} />
                 </div>
               </PreviewPanel>
             ) : (
-              <PreviewPanel label="Selected Agent" title="Agent Loading" accent="#fcee09">
+              <PreviewPanel label="Agent A" title="Awaiting Pick" accent="#ffb000">
                 <PreviewMessage
                   text={
                     errorMessage ??
                     (isLoadingAgents
                       ? "Reading live agent identities..."
-                      : "No public agent selected.")
+                      : "Pick the first public agent in the selector.")
                   }
                 />
               </PreviewPanel>
             )}
 
-            <div className="industrial-clip flex min-h-[180px] items-center justify-center border-4 border-black bg-[#fcee09] text-black shadow-[12px_12px_0_rgba(0,0,0,0.55)]">
+            <div
+              className="industrial-clip flex min-h-[180px] items-center justify-center border-4 border-black bg-[#fcee09] text-black shadow-[12px_12px_0_rgba(0,0,0,0.55)]"
+              style={{ color: "#050505", WebkitTextFillColor: "#050505" }}
+            >
               <div className="text-center">
                 <Swords className="mx-auto mb-3 h-12 w-12" />
                 <div className="text-5xl font-black italic leading-none">VS</div>
-                <div className="mt-2 text-[9px] font-black" style={{ fontFamily: "monospace", letterSpacing: "0.22em", textTransform: "uppercase" }}>Public Round</div>
+                <div className="mt-2 text-[9px] font-black" style={{ fontFamily: "monospace", letterSpacing: "0.22em", textTransform: "uppercase", WebkitTextFillColor: "#050505" }}>Public Round</div>
               </div>
             </div>
 
-            {opponent ? (
-              <PreviewPanel label="Opponent Preview" title={opponent.name} accent={opponent.accent}>
+            {agentB ? (
+              <PreviewPanel label="Agent B Locked" title={agentB.name} accent={agentB.accent}>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <PreviewStat label="Rank" value={`#${opponent.rank}`} />
-                  <PreviewStat label="Win Rate" value={opponent.winRate} />
-                  <PreviewStat label="Badge" value={opponent.badge} />
-                  <PreviewStat label="Brain" value={formatLandingBrain(opponent)} />
+                  <PreviewStat label="Rank" value={`#${agentB.rank}`} />
+                  <PreviewStat label="Win Rate" value={agentB.winRate} />
+                  <PreviewStat label="Badge" value={agentB.badge} />
+                  <PreviewStat label="Brain" value={formatLandingBrain(agentB)} />
                 </div>
               </PreviewPanel>
             ) : (
-              <PreviewPanel label="Opponent Preview" title="Awaiting Rival" accent="#ffb000">
-                <PreviewMessage text="Need a second public agent to arm the round." />
+              <PreviewPanel label="Agent B" title="Awaiting Rival" accent="#ffb000">
+                <PreviewMessage text="Pick a second public agent to arm the duel." />
               </PreviewPanel>
             )}
           </div>
@@ -128,25 +141,31 @@ export function BattlePreviewSection({
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.15 }}
-            className="mt-6 grid gap-6 border-4 border-[#fcee09] bg-[#111111] p-6 text-white lg:grid-cols-[1fr_auto] lg:items-center"
+            className="mt-6 grid gap-6 border-4 border-black bg-[#fcee09] p-6 text-black lg:grid-cols-[1fr_auto] lg:items-center"
+            style={{
+              backgroundColor: "#fcee09",
+              color: "#050505",
+              WebkitTextFillColor: "#050505",
+            }}
           >
             <div>
-              <div className="mb-3 text-[10px] font-black text-[#fcee09]" style={{ fontFamily: "monospace", letterSpacing: "0.22em", textTransform: "uppercase" }}>
+              <div className="mb-3 text-[10px] font-black text-black" style={{ fontFamily: "monospace", letterSpacing: "0.22em", textTransform: "uppercase", WebkitTextFillColor: "#050505" }}>
                 Battle Event
               </div>
               <h3
-                className="font-black leading-none text-white"
+                className="font-black leading-none text-black"
                 style={{
                   fontFamily: "Impact, Haettenschweiler, Arial Black, sans-serif",
                   fontSize: "clamp(42px, 6vw, 86px)",
                   textTransform: "uppercase",
+                  WebkitTextFillColor: "#050505",
                 }}
               >
                 {selectedEvent.shortQuestion}
               </h3>
-              <div className="mt-4 flex flex-wrap gap-3 text-[10px] font-black uppercase tracking-[0.22em] text-white/55">
+              <div className="mt-4 flex flex-wrap gap-3 text-[10px] font-black uppercase tracking-[0.22em] text-black">
                 <span>{selectedEvent.sourceShort}</span>
-                <span className="text-[#fcee09]">{selectedEvent.consensus}</span>
+                <span>{selectedEvent.consensus}</span>
                 <span>{selectedEvent.difficulty}</span>
               </div>
             </div>
@@ -155,7 +174,8 @@ export function BattlePreviewSection({
               type="button"
               onClick={onEnterArena}
               disabled={isCreating || !canStart}
-              className="industrial-clip group relative overflow-hidden border-4 border-[#fcee09] bg-[#fcee09] px-10 py-6 text-sm font-black uppercase tracking-[0.3em] text-black shadow-[10px_10px_0_rgba(0,0,0,0.7)] transition-transform hover:-translate-y-1 disabled:cursor-not-allowed disabled:opacity-50"
+              className="industrial-clip group relative overflow-hidden border-4 border-black bg-[#fcee09] px-10 py-6 text-sm font-black uppercase tracking-[0.3em] text-black shadow-[10px_10px_0_rgba(0,0,0,0.7)] transition-transform hover:-translate-y-1 disabled:cursor-not-allowed disabled:opacity-50"
+              style={{ color: "#050505", WebkitTextFillColor: "#050505" }}
             >
               <span className="relative z-10 flex items-center justify-center gap-3">
                 {isCreating ? "Arming..." : "Start Duel"}
@@ -172,8 +192,11 @@ export function BattlePreviewSection({
 
 function ProofModule() {
   return (
-    <div className="industrial-clip border-4 border-black bg-[#050505] p-5 text-white shadow-[12px_12px_0_rgba(0,0,0,0.38)]">
-      <div className="mb-4 flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.26em] text-[#fcee09]">
+    <div
+      className="industrial-clip border-4 border-black bg-[#fcee09] p-5 text-black shadow-[12px_12px_0_rgba(0,0,0,0.38)]"
+      style={{ backgroundColor: "#fcee09", color: "#050505", WebkitTextFillColor: "#050505" }}
+    >
+      <div className="mb-4 flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.26em] text-black">
         <DatabaseZap className="h-4 w-4" />
         Proof
       </div>
@@ -188,8 +211,11 @@ function ProofModule() {
 
 function ProofRow({ icon: Icon, text }: { icon: typeof ShieldCheck; text: string }) {
   return (
-    <div className="flex items-center gap-3 border-2 border-[#202326] bg-[#151515] px-3 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-white">
-      <Icon className="h-4 w-4 text-[#fcee09]" />
+    <div
+      className="flex items-center gap-3 border-2 border-black bg-[#fcee09] px-3 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-black"
+      style={{ color: "#050505", WebkitTextFillColor: "#050505" }}
+    >
+      <Icon className="h-4 w-4 text-black" />
       {text}
     </div>
   );
@@ -207,12 +233,19 @@ function PreviewPanel({
   children: React.ReactNode;
 }) {
   return (
-    <div className="industrial-clip relative min-h-[320px] border-4 border-[#2b2b2b] bg-[#111111] p-6 text-white shadow-[12px_12px_0_rgba(0,0,0,0.55)]">
+    <div
+      className="industrial-clip relative min-h-[320px] border-4 border-black bg-[#fcee09] p-6 text-black shadow-[12px_12px_0_rgba(0,0,0,0.55)]"
+      style={{
+        backgroundColor: "#fcee09",
+        color: "#050505",
+        WebkitTextFillColor: "#050505",
+      }}
+    >
       <div className="absolute inset-x-0 top-0 h-2" style={{ backgroundColor: accent }} />
-      <div className="mb-5 text-[10px] font-black uppercase tracking-[0.28em]" style={{ color: accent }}>
+      <div className="mb-5 text-[10px] font-black uppercase tracking-[0.28em]" style={{ color: "#050505", WebkitTextFillColor: "#050505" }}>
         {label}
       </div>
-      <h3 className="mb-6 font-black italic leading-none text-white" style={{ fontFamily: "Impact, Haettenschweiler, Arial Black, sans-serif", fontSize: "clamp(42px, 5vw, 72px)", textTransform: "uppercase" }}>{title}</h3>
+      <h3 className="mb-6 font-black italic leading-none text-black" style={{ fontFamily: "Impact, Haettenschweiler, Arial Black, sans-serif", fontSize: "clamp(42px, 5vw, 72px)", textTransform: "uppercase", WebkitTextFillColor: "#050505" }}>{title}</h3>
       <div className="space-y-5">{children}</div>
     </div>
   );
@@ -220,16 +253,22 @@ function PreviewPanel({
 
 function PreviewStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="border-2 border-[#202326] bg-[#151515] p-3">
-      <div className="mb-1 text-[8px] font-black text-white/40" style={{ fontFamily: "monospace", letterSpacing: "0.22em", textTransform: "uppercase" }}>{label}</div>
-      <div className="text-sm font-black uppercase text-white">{value}</div>
+    <div
+      className="border-2 border-black bg-[#fcee09] p-3 text-black"
+      style={{ backgroundColor: "#fcee09", color: "#050505", WebkitTextFillColor: "#050505" }}
+    >
+      <div className="mb-1 text-[8px] font-black text-black" style={{ fontFamily: "monospace", letterSpacing: "0.22em", textTransform: "uppercase", WebkitTextFillColor: "#050505" }}>{label}</div>
+      <div className="text-sm font-black uppercase text-black">{value}</div>
     </div>
   );
 }
 
 function PreviewMessage({ text }: { text: string }) {
   return (
-    <div className="border-2 border-[#202326] bg-[#151515] p-4 text-xs font-black uppercase tracking-[0.18em] text-white/70">
+    <div
+      className="border-2 border-black bg-[#fcee09] p-4 text-xs font-black uppercase tracking-[0.18em] text-black"
+      style={{ backgroundColor: "#fcee09", color: "#050505", WebkitTextFillColor: "#050505" }}
+    >
       {text}
     </div>
   );

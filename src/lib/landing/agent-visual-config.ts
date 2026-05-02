@@ -33,7 +33,7 @@ export const LANDING_AGENT_VISUALS: Record<string, LandingAgentVisual> = {
     codename: "MACRO",
     color: "#f59e0b",
     description: "Tracks regime shifts and rides the dominant macro narrative.",
-    image: "",
+    image: "/agents/macro-agent-card.png",
     riskLabel: "AGGRESSIVE",
     strengths: ["Narrative Velocity", "Regime Detection", "Macro Cycles"],
   },
@@ -54,7 +54,7 @@ export const LANDING_AGENT_VISUALS: Record<string, LandingAgentVisual> = {
     color: "#2563eb",
     description:
       "Reads the live narrative. Spots catalysts before they become consensus.",
-    image: "",
+    image: "/agents/news-agent-card.png",
     riskLabel: "CONSERVATIVE",
     strengths: ["Catalyst Detection", "Source Discipline", "Fast Context"],
   },
@@ -65,7 +65,7 @@ export const LANDING_AGENT_VISUALS: Record<string, LandingAgentVisual> = {
     color: "#a855f7",
     description:
       "Microstructure obsessed. Sizes by conviction interval, never bankroll.",
-    image: "",
+    image: "/agents/quant-agent-card.png",
     riskLabel: "BALANCED",
     strengths: ["Mean Reversion", "Disciplined Sizing", "Microstructure"],
   },

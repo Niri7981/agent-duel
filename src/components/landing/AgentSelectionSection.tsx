@@ -12,7 +12,7 @@ interface AgentSelectionSectionProps {
   agents: LandingAgent[];
   errorMessage: string | null;
   isLoading: boolean;
-  selectedAgentId: string | null;
+  selectedAgentIds: string[];
   onSelectAgent: (id: string) => void;
 }
 
@@ -20,11 +20,12 @@ export function AgentSelectionSection({
   agents,
   errorMessage,
   isLoading,
-  selectedAgentId,
+  selectedAgentIds,
   onSelectAgent,
 }: AgentSelectionSectionProps) {
-  const selectedAgent =
-    agents.find((agent) => agent.id === selectedAgentId) ?? agents[0] ?? null;
+  const selectedAgents = selectedAgentIds
+    .map((agentId) => agents.find((agent) => agent.id === agentId))
+    .filter((agent): agent is LandingAgent => Boolean(agent));
   const posterAgents = agents;
 
   return (
@@ -44,7 +45,13 @@ export function AgentSelectionSection({
         >
           <div
             className="inline-flex items-center gap-3 border-2 border-black bg-[#fcee09] px-4 py-2 text-[11px] font-black text-black shadow-[8px_8px_0_rgba(0,0,0,0.65)]"
-            style={{ fontFamily: "monospace", letterSpacing: "0.22em", textTransform: "uppercase" }}
+            style={{
+              color: "#050505",
+              fontFamily: "monospace",
+              letterSpacing: "0.22em",
+              textTransform: "uppercase",
+              WebkitTextFillColor: "#050505",
+            }}
           >
             <Crown className="h-4 w-4" />
             {"/// AGENT.MODULE"}
@@ -60,42 +67,52 @@ export function AgentSelectionSection({
                   letterSpacing: "0",
                   lineHeight: 0.82,
                   textTransform: "uppercase",
+                  WebkitTextFillColor: "#050505",
                 }}
               >
                 CHOOSE YOUR
                 <br />
                 AGENT.
               </h2>
-              <p className="mt-5 text-xl font-black uppercase leading-none text-black md:text-2xl">
-                Pick a public identity.
+              <p
+                className="mt-5 text-xl font-black uppercase leading-none text-black md:text-2xl"
+                style={{ WebkitTextFillColor: "#050505" }}
+              >
+                Pick two public identities.
               </p>
             </div>
-            {selectedAgent ? <SelectedAgentDossier agent={selectedAgent} /> : null}
+            {selectedAgents.length > 0 ? (
+              <SelectedAgentDossier agents={selectedAgents} />
+            ) : null}
           </div>
         </motion.div>
 
-        <div className="relative border-[6px] border-black bg-[#050505] p-4 text-white shadow-[18px_18px_0_rgba(0,0,0,0.38)] md:p-7">
+        <div
+          className="relative border-[6px] border-black bg-[#fcee09] p-4 text-black shadow-[18px_18px_0_rgba(0,0,0,0.38)] md:p-7"
+          style={{ backgroundColor: "#fcee09", color: "#050505", WebkitTextFillColor: "#050505" }}
+        >
           <div className="mb-6 flex flex-col gap-3 border-b-[6px] border-[#fcee09] pb-5 md:flex-row md:items-end md:justify-between">
             <div>
               <div
-                className="mb-2 text-[10px] font-black text-[#fcee09]"
-                style={{ fontFamily: "monospace", letterSpacing: "0.22em", textTransform: "uppercase" }}
+                className="mb-2 text-[10px] font-black text-black"
+                style={{ fontFamily: "monospace", letterSpacing: "0.22em", textTransform: "uppercase", WebkitTextFillColor: "#050505" }}
               >
                 Live Agent Pool
               </div>
               <h3
-                className="font-black italic leading-none text-white"
+                className="font-black italic leading-none text-black"
                 style={{
                   fontFamily: "Impact, Haettenschweiler, Arial Black, sans-serif",
                   fontSize: "clamp(42px, 6vw, 86px)",
                   textTransform: "uppercase",
+                  WebkitTextFillColor: "#050505",
                 }}
               >
-                SELECT AGENT
+                SELECT TWO AGENTS
               </h3>
             </div>
-            <div className="text-[10px] font-black text-white/55" style={{ fontFamily: "monospace", letterSpacing: "0.22em", textTransform: "uppercase" }}>
-              {posterAgents.length} PUBLIC IDENTITIES ONLINE.
+            <div className="text-[10px] font-black text-black" style={{ fontFamily: "monospace", letterSpacing: "0.22em", textTransform: "uppercase", WebkitTextFillColor: "#050505" }}>
+              {selectedAgentIds.length}/2 LOCKED · {posterAgents.length} PUBLIC IDENTITIES ONLINE.
             </div>
           </div>
 
@@ -111,8 +128,13 @@ export function AgentSelectionSection({
                 <div key={agent.id} className="shrink-0 snap-start">
                   <AgentCard
                     agent={agent}
-                    isSelected={selectedAgentId === agent.id}
+                    isSelected={selectedAgentIds.includes(agent.id)}
                     onSelect={onSelectAgent}
+                    selectedSlot={
+                      selectedAgentIds.includes(agent.id)
+                        ? selectedAgentIds.indexOf(agent.id) + 1
+                        : null
+                    }
                   />
                 </div>
               ))}
@@ -124,32 +146,45 @@ export function AgentSelectionSection({
   );
 }
 
-function SelectedAgentDossier({ agent }: { agent: LandingAgent }) {
+function SelectedAgentDossier({ agents }: { agents: LandingAgent[] }) {
   return (
     <motion.div
-      key={agent.id}
+      key={agents.map((agent) => agent.id).join("-")}
       initial={{ opacity: 0, x: 24 }}
       animate={{ opacity: 1, x: 0 }}
       className="industrial-clip hidden border-4 border-black bg-[#050505] p-5 text-white shadow-[12px_12px_0_rgba(0,0,0,0.28)] lg:block"
     >
       <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-2 text-[10px] font-black" style={{ color: agent.accent, fontFamily: "monospace", letterSpacing: "0.22em", textTransform: "uppercase" }}>
+        <div className="flex items-center gap-2 text-[10px] font-black" style={{ color: agents[0]?.accent ?? "#fcee09", fontFamily: "monospace", letterSpacing: "0.22em", textTransform: "uppercase" }}>
           <Swords className="h-4 w-4" />
-          Locked
+          Duel Pair
         </div>
         <div className="bg-[#fcee09] px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-black">
-          #{agent.rank}
+          {agents.length}/2
         </div>
       </div>
-      <h3 className="font-black italic leading-none text-white" style={{ fontFamily: "Impact, Haettenschweiler, Arial Black, sans-serif", fontSize: "48px", textTransform: "uppercase" }}>{agent.codename}</h3>
-      <div className="mt-3 text-2xl font-black uppercase leading-none" style={{ color: agent.accent }}>
-        {agent.archetype}
+      <div className="grid gap-3">
+        {agents.map((agent, index) => (
+          <div key={agent.id} className="border-2 border-[#fcee09] bg-[#151515] p-3">
+            <div className="mb-2 text-[9px] font-black uppercase tracking-[0.2em] text-[#fcee09]">
+              Agent {index === 0 ? "A" : "B"}
+            </div>
+            <h3 className="font-black italic leading-none text-white" style={{ fontFamily: "Impact, Haettenschweiler, Arial Black, sans-serif", fontSize: "40px", textTransform: "uppercase" }}>{agent.codename}</h3>
+            <div className="mt-2 text-xl font-black uppercase leading-none" style={{ color: agent.accent }}>
+              {agent.archetype}
+            </div>
+          </div>
+        ))}
       </div>
       <div className="mt-5 flex flex-wrap gap-2">
-        <DossierTag label="Risk" value={agent.riskLabel} />
-        <DossierTag label="Win Rate" value={agent.winRate} />
-        <DossierTag label="Streak" value={`${agent.streak}W`} />
-        <DossierTag label="Brain" value={formatLandingBrain(agent)} emphasis />
+        {agents.length === 2 ? (
+          <DossierTag label="Status" value="Duel Armed" emphasis />
+        ) : (
+          <DossierTag label="Status" value="Pick Rival" emphasis />
+        )}
+        {agents.map((agent) => (
+          <DossierTag key={agent.id} label={agent.codename} value={formatLandingBrain(agent)} />
+        ))}
       </div>
     </motion.div>
   );

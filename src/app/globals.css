@@ -3,6 +3,7 @@
 :root {
   --background: #fcee09;
   --foreground: #050505;
+  color-scheme: only light;
 }
 
 @theme inline {
@@ -16,13 +17,27 @@
   :root {
     --background: #fcee09;
     --foreground: #050505;
+    color-scheme: only light;
   }
+}
+
+html {
+  background: var(--background);
+  color: var(--foreground);
+  color-scheme: only light;
+  forced-color-adjust: none;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
+  color-scheme: only light;
+  forced-color-adjust: none;
   font-family: "Arial Narrow", "Roboto Condensed", "Helvetica Neue", Arial, Helvetica, sans-serif;
+}
+
+body :where(h1, h2, h3, h4, h5, h6, p, a, button, span, div, li, small, strong, em, label) {
+  -webkit-text-fill-color: currentColor;
 }
 
 .game-title {
@@ -87,6 +102,16 @@ body {
 }
 
 .landing-black-text svg {
+  color: #050505 !important;
+  stroke: #050505 !important;
+}
+
+.round-black-text :where(h1, h2, h3, h4, h5, h6, p, a, button, span, div, li, small, strong, em, label) {
+  color: #050505 !important;
+  -webkit-text-fill-color: #050505 !important;
+}
+
+.round-black-text svg {
   color: #050505 !important;
   stroke: #050505 !important;
 }
@@ -158,4 +183,344 @@ body {
   background: #050505;
   transform: skewX(-28deg);
   box-shadow: 32px 0 0 #050505, 0 10px 0 rgba(252, 238, 9, 0.48);
+}
+
+.leaderboard-dock {
+  position: fixed;
+  right: 28px;
+  top: 96px;
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+  color: #fcee09;
+}
+
+.leaderboard-dock__button {
+  display: block;
+  border: 3px solid #fcee09;
+  background: #050505;
+  color: #fcee09;
+  padding: 8px;
+  box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.58);
+  transition: transform 160ms ease, background 160ms ease;
+}
+
+.leaderboard-dock__button:hover {
+  background: #101010;
+  transform: translateY(-2px);
+}
+
+.leaderboard-dock__buttonInner,
+.leaderboard-dock__eyebrow,
+.leaderboard-dock__actions,
+.leaderboard-dock__delta,
+.leaderboard-dock__streak {
+  display: flex;
+  align-items: center;
+}
+
+.leaderboard-dock__buttonInner {
+  gap: 8px;
+}
+
+.leaderboard-dock__buttonIcon {
+  display: flex;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+}
+
+.leaderboard-dock__buttonLabel {
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.leaderboard-dock__panel {
+  width: min(360px, calc(100vw - 32px));
+  max-height: calc(100vh - 128px);
+  overflow: auto;
+  border: 4px solid #050505;
+  background: #050505;
+  color: #ffffff;
+  padding: 12px;
+  box-shadow: 12px 12px 0 rgba(0, 0, 0, 0.58);
+}
+
+.leaderboard-dock__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+  border-bottom: 3px solid #fcee09;
+  padding-bottom: 12px;
+}
+
+.leaderboard-dock__eyebrow {
+  gap: 8px;
+  margin-bottom: 4px;
+  color: #fcee09;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+.leaderboard-dock__title {
+  color: #ffffff;
+  font-family: Impact, Haettenschweiler, "Arial Black", sans-serif;
+  font-size: 24px;
+  font-style: italic;
+  font-weight: 900;
+  line-height: 0.9;
+  text-transform: uppercase;
+}
+
+.leaderboard-dock__actions {
+  gap: 8px;
+}
+
+.leaderboard-dock__iconButton {
+  display: flex;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
+}
+
+.leaderboard-dock__iconButton:hover {
+  border-color: #fcee09;
+  color: #fcee09;
+}
+
+.leaderboard-dock__champion {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 12px;
+  margin-bottom: 12px;
+  border: 2px solid #fbbf24;
+  background: #111111;
+  padding: 8px;
+  color: #ffffff;
+}
+
+.leaderboard-dock__championImage {
+  position: relative;
+  width: 76px;
+  height: 86px;
+  overflow: hidden;
+  border: 1px solid rgba(251, 191, 36, 0.72);
+  background: #000000;
+}
+
+.leaderboard-dock__championRank {
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  background: #fbbf24;
+  color: #050505;
+  padding: 2px 6px;
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.leaderboard-dock__championBody {
+  min-width: 0;
+  padding: 4px 0;
+}
+
+.leaderboard-dock__championLabel {
+  margin-bottom: 4px;
+  color: #fbbf24;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+.leaderboard-dock__championName {
+  overflow: hidden;
+  color: #ffffff;
+  font-family: Impact, Haettenschweiler, "Arial Black", sans-serif;
+  font-size: 20px;
+  font-style: italic;
+  font-weight: 900;
+  line-height: 0.95;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.leaderboard-dock__stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.leaderboard-dock__stat {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(0, 0, 0, 0.55);
+  padding: 6px;
+}
+
+.leaderboard-dock__statLabel {
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.leaderboard-dock__statValue {
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.leaderboard-dock__list {
+  display: grid;
+  gap: 8px;
+}
+
+.leaderboard-dock__empty,
+.leaderboard-dock__error {
+  padding: 12px;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.leaderboard-dock__empty {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.leaderboard-dock__error {
+  margin-top: 12px;
+  border: 1px solid #ff4d4d;
+  background: rgba(255, 77, 77, 0.12);
+  color: #ff8a8a;
+}
+
+.leaderboard-dock__row {
+  display: grid;
+  grid-template-columns: 44px 54px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+  padding: 8px;
+}
+
+.leaderboard-dock__row:hover {
+  border-color: #fcee09;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.leaderboard-dock__rank {
+  display: flex;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid currentColor;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.leaderboard-dock__avatar {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: #000000;
+}
+
+.leaderboard-dock__agentBody {
+  min-width: 0;
+}
+
+.leaderboard-dock__agentName {
+  overflow: hidden;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.leaderboard-dock__agentMeta {
+  display: flex;
+  min-width: 0;
+  gap: 8px;
+  margin-top: 5px;
+}
+
+.leaderboard-dock__badge,
+.leaderboard-dock__record {
+  overflow: hidden;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.leaderboard-dock__badge {
+  color: rgba(255, 255, 255, 0.48);
+}
+
+.leaderboard-dock__record {
+  color: #fcee09;
+}
+
+.leaderboard-dock__metrics {
+  display: flex;
+  min-width: 54px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.leaderboard-dock__delta,
+.leaderboard-dock__streak {
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.leaderboard-dock__streak {
+  color: #fbbf24;
+}
+
+@media (max-width: 640px) {
+  .leaderboard-dock {
+    right: 14px;
+    top: 76px;
+  }
+
+  .leaderboard-dock__buttonLabel {
+    display: none;
+  }
+
+  .leaderboard-dock__panel {
+    width: min(340px, calc(100vw - 28px));
+  }
 }
