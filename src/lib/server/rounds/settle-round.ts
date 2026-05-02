@@ -79,7 +79,7 @@ function computeSettlement(
       pnlUsd: 0,
       winnerAgentKey: null,
       winnerName: "Draw",
-      winningSide: outcome,
+      winningSide: null,
     };
   }
 

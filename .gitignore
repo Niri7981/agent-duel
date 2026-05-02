@@ -26,6 +26,7 @@
 onchain/target/
 onchain/.anchor/
 onchain/test-ledger/
+/test-ledger/
 /dev.db
 
 # debug

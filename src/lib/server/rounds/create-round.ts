@@ -172,5 +172,7 @@ export async function createRound(input: CreateRoundInput = {}) {
         id: round.id,
       },
     });
+  }, {
+    timeout: 30_000,
   });
 }

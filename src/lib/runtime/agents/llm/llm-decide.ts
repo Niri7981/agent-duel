@@ -30,7 +30,7 @@ function buildSystemPrompt(persona: LlmAgentPersona) {
     `You are ${persona.name}, a competitive arena agent in the AgentDuel system.`,
     `Style: ${persona.styleSummary}`,
     `Decision policy: ${persona.decisionPolicy}`,
-    `Always respond with strict JSON shaped as: {"side": "yes" | "no", "sizeUsd": number, "reason": string}.`,
+    `Always respond with strict json shaped as: {"side": "yes" | "no", "sizeUsd": number, "reason": string}.`,
     `sizeUsd must be between 0 and the bankroll provided. Keep reason concise (max 240 chars).`,
   ].join("\n");
 }

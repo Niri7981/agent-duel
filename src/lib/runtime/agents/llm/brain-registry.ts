@@ -19,16 +19,30 @@ export type BrainConfig = {
   model: string;
 };
 
+function getOpenAiApiMode() {
+  return process.env.OPENAI_API_MODE === "responses" ? "responses" : "chat";
+}
+
+function getOpenAiModel(model: string) {
+  return process.env.OPENAI_MODEL ?? model;
+}
+
 export function getLlmAdapterForBrain(brain: BrainConfig): LlmAdapter {
   if (brain.provider === "openai") {
     const apiKey = process.env.OPENAI_API_KEY;
+    const model = getOpenAiModel(brain.model);
 
     if (apiKey) {
-      return buildOpenAiAdapter({ apiKey, model: brain.model });
+      return buildOpenAiAdapter({
+        apiMode: getOpenAiApiMode(),
+        apiKey,
+        baseUrl: process.env.OPENAI_BASE_URL,
+        model,
+      });
     }
 
     return buildMockLlmAdapter({
-      emulatedModel: brain.model,
+      emulatedModel: model,
       emulatedProvider: "openai",
     });
   }

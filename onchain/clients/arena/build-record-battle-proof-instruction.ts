@@ -1,4 +1,4 @@
-import { PublicKey, TransactionInstruction } from "@solana/web3.js";
+import { PublicKey, SystemProgram, TransactionInstruction } from "@solana/web3.js";
 
 import { ARENA_PROGRAM_ID } from "./constants";
 import { deriveBattleProofPda } from "./derive-battle-proof-pda";
@@ -39,6 +39,11 @@ export function buildRecordBattleProofInstruction(
           isSigner: false,
           isWritable: true,
           pubkey: proofPda.proofAddress,
+        },
+        {
+          isSigner: false,
+          isWritable: false,
+          pubkey: SystemProgram.programId,
         },
       ],
       programId,
